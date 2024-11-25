@@ -74,7 +74,7 @@ class Taxi(pygame.sprite.Sprite):
         self._reinitialize()
 
     @property
-    def pad_landed_on(self) -> Pad or None:
+    def pad_landed_on(self) -> pad or None:
         return self._pad_landed_on
 
     def board_astronaut(self, astronaut: Astronaut) -> None:
