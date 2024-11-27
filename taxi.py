@@ -47,7 +47,6 @@ class Taxi(pygame.sprite.Sprite):
     _MAX_ACCELERATION_Y_DOWN = 0.05
 
     _MAX_VELOCITY_SMOOTH_LANDING = 0.50  # vitesse maximale permise pour un atterrissage en douceur
-    _CRASH_ACCELERATION = 0.10
 
     _FRICTION_MUL = 0.9995  # la vitesse horizontale est multipliée par la friction
     _GRAVITY_ADD = 0.005  # la gravité est ajoutée à la vitesse verticale
@@ -74,7 +73,7 @@ class Taxi(pygame.sprite.Sprite):
         self._reinitialize()
 
     @property
-    def pad_landed_on(self) -> pad or None:
+    def pad_landed_on(self) -> None:
         return self._pad_landed_on
 
     def board_astronaut(self, astronaut: Astronaut) -> None:
@@ -95,7 +94,8 @@ class Taxi(pygame.sprite.Sprite):
                 self._crash_sound.play()
                 self._velocity_x = 0.0
                 self._acceleration_x = 0.0
-                self._acceleration_y = Taxi._CRASH_ACCELERATION
+                self._acceleration_y = 0.0 # C5
+                self._velocity_y = 0.0 # C5
                 return True
 
         return False
@@ -115,7 +115,8 @@ class Taxi(pygame.sprite.Sprite):
                 self._crash_sound.play()
                 self._velocity_x = 0.0
                 self._acceleration_x = 0.0
-                self._acceleration_y = Taxi._CRASH_ACCELERATION
+                self._acceleration_y = 0.0 # C5
+                self._velocity_y = 0.0 # C5
                 return True
 
         return False
@@ -135,7 +136,8 @@ class Taxi(pygame.sprite.Sprite):
                 self._crash_sound.play()
                 self._velocity_x = 0.0
                 self._acceleration_x = 0.0
-                self._acceleration_y = Taxi._CRASH_ACCELERATION
+                self._acceleration_y = 0.0 # C5
+                self._velocity_y = 0.0 # C5
                 return True
 
         return False
@@ -243,6 +245,23 @@ class Taxi(pygame.sprite.Sprite):
         self._hud.set_trip_money(0.0)
         self._astronaut = None
 
+    def unboard_astronaut(self) -> None:
+        """ Fait descendre l'astronaute qui se trouve à bord. """
+        if self._astronaut.target_pad is not Pad.UP:
+            self._astronaut.move(self.get_door_x(), self._pad_landed_on.rect.y - self._astronaut.rect.height)
+            self._astronaut.jump(self._astronaut.target_pad.astronaut_end.x)
+
+        self._hud.add_bank_money(self._astronaut.get_trip_money())
+        self._astronaut.set_trip_money(0.0)
+        self._hud.set_trip_money(0.0)
+        self._astronaut = None
+
+    def get_door_x(self): # C7
+        if self._flags & Taxi._FLAG_LEFT:
+            return self.rect.left + 20
+        else:
+            return self.rect.left + 15
+
     def update(self, *args, **kwargs) -> None:
         """
         Met à jour le taxi. Cette méthode est appelée à chaque itération de la boucle de jeu.
@@ -285,32 +304,41 @@ class Taxi(pygame.sprite.Sprite):
 
         gear_out = self._flags & Taxi._FLAG_GEAR_OUT == Taxi._FLAG_GEAR_OUT
 
-        if keys[pygame.K_LEFT] and not gear_out:
+        if keys[pygame.K_LEFT] and keys[pygame.K_RIGHT]: # C2 elif pour le reste des cas
+            self._flags &= ~Taxi._FLAG_REAR_REACTOR
+            self._acceleration_x = 0.0
+
+        elif keys[pygame.K_LEFT] and not gear_out:
             self._flags |= Taxi._FLAG_LEFT | Taxi._FLAG_REAR_REACTOR
             self._acceleration_x = max(self._acceleration_x - Taxi._REAR_REACTOR_POWER, -Taxi._MAX_ACCELERATION_X)
 
-        if keys[pygame.K_RIGHT] and not gear_out:
+        elif keys[pygame.K_RIGHT] and not gear_out:
             self._flags &= ~Taxi._FLAG_LEFT
             self._flags |= self._FLAG_REAR_REACTOR
             self._acceleration_x = min(self._acceleration_x + Taxi._REAR_REACTOR_POWER, Taxi._MAX_ACCELERATION_X)
 
-        if not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]):
+        elif not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]):
             self._flags &= ~Taxi._FLAG_REAR_REACTOR
             self._acceleration_x = 0.0
 
-        if keys[pygame.K_DOWN] and not gear_out:
+
+        if keys[pygame.K_DOWN] and keys[pygame.K_UP]: # C2 elif pour le reste des cas
+            self._flags &= ~(Taxi._FLAG_TOP_REACTOR | Taxi._FLAG_BOTTOM_REACTOR)
+            self._acceleration_y = 0.0
+
+        elif keys[pygame.K_DOWN] and not gear_out:
             self._flags &= ~Taxi._FLAG_BOTTOM_REACTOR
             self._flags |= Taxi._FLAG_TOP_REACTOR
             self._acceleration_y = min(self._acceleration_y + Taxi._TOP_REACTOR_POWER, Taxi._MAX_ACCELERATION_Y_DOWN)
 
-        if keys[pygame.K_UP]:
+        elif keys[pygame.K_UP]:
             self._flags &= ~Taxi._FLAG_TOP_REACTOR
             self._flags |= Taxi._FLAG_BOTTOM_REACTOR
             self._acceleration_y = max(self._acceleration_y - Taxi._BOTTOM_REACTOR_POWER, -Taxi._MAX_ACCELERATION_Y_UP)
             if self._pad_landed_on:
                 self._pad_landed_on = None
 
-        if not (keys[pygame.K_UP] or keys[pygame.K_DOWN]):
+        elif not (keys[pygame.K_UP] or keys[pygame.K_DOWN]):
             self._flags &= ~(Taxi._FLAG_TOP_REACTOR | Taxi._FLAG_BOTTOM_REACTOR)
             self._acceleration_y = 0.0
 

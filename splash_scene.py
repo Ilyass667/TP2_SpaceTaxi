@@ -15,11 +15,14 @@ class SplashScene(Scene):
         self._music = pygame.mixer.Sound("snd/371516__mrthenoronha__space-game-theme-loop.wav")
         self._music.play(loops=-1, fade_ms=1000)
         self._fade_out_start_time = None
+        self._transitioning = False  # C1
+
 
     def handle_event(self, event: pygame.event.Event) -> None:
-        if event.type == pygame.KEYDOWN:
+        if event.type == pygame.KEYDOWN and not self._transitioning: # C1
             if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                 self._fade_out_start_time = pygame.time.get_ticks()
+                self._transitioning = True # C1
                 SceneManager().change_scene("level1_load", SplashScene._FADE_OUT_DURATION)
 
     def update(self, delta_time: float) -> None:
