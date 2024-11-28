@@ -22,7 +22,7 @@ class LevelScene(Scene):
 
     def __init__(self, level: int) -> None:
         """
-        Initiliase une instance de niveau de jeu.
+        Initialise une instance de niveau de jeu.
         :param level: le numéro de niveau
         """
         super().__init__()
@@ -110,12 +110,21 @@ class LevelScene(Scene):
                         SceneManager().change_scene(f"level{self._level + 1}_load", LevelScene._FADE_OUT_DURATION)
                         return
             elif self._astronaut.has_reached_destination():
-                if self._nb_taxied_astronauts < len(self._astronauts) - 1:
+                if self._nb_taxied_astronauts < len(self._astronaut_data) - 1:
                     self._nb_taxied_astronauts += 1
                     self._astronaut = None
                     self._last_taxied_astronaut_time = time.time()
             elif self._taxi.hit_astronaut(self._astronaut):
+                # Modif A11 Début:
+                self._astronaut.react_to_collision()
+                # Modif A11 Fin
                 self._retry_current_astronaut()
+            # Modif: C9 Début
+            elif self._taxi.burn_astronaute(self._astronaut):  # Vérifier si le réacteur brûle l'astronaute
+                print("Un astronaute a été brûlé par un réacteur !")
+                self._astronaut.react_to_collision()  # Réaction de l'astronaute
+                self._retry_current_astronaut()
+            # Modif: C9 Fin
             elif self._taxi.pad_landed_on:
                 if self._taxi.pad_landed_on.number == self._astronaut.source_pad.number:
                     if self._astronaut.is_waiting_for_taxi():
@@ -124,28 +133,45 @@ class LevelScene(Scene):
                 self._astronaut.wait()
         else:
             if time.time() - self._last_taxied_astronaut_time >= LevelScene._TIME_BETWEEN_ASTRONAUTS:
-                self._astronaut = self._astronauts[self._nb_taxied_astronauts]
+                # Début modif M15 : Créer l'astronaute dynamiquement au besoin
+                if self._nb_taxied_astronauts < len(self._astronaut_data):
+                    data = self._astronaut_data[self._nb_taxied_astronauts]
+                    self._astronaut = Astronaut(*data)
+                    print(f"Astronaute {self._nb_taxied_astronauts + 1} a été créé.")  # Afficher un message
+                # Fin modif M15
 
-        self._taxi.update()
+        # Mettez à jour le taxi uniquement s'il existe
+        if self._taxi:
+            self._taxi.update()
 
-        for pad in self._pads:
-            if self._taxi.land_on_pad(pad):
-                pass  # introduire les effets secondaires d'un atterrissage ici
-            elif self._taxi.crash_on_pad(pad):
+            # Modif A11 Début:
+            is_astronaut_onboard = self._astronaut and self._astronaut.is_onboard()
+
+            for pad in self._pads:
+                if self._taxi.land_on_pad(pad):
+                    pass
+                elif self._taxi.crash_on_pad(pad):
+                    self._hud.loose_live()
+                    if is_astronaut_onboard:
+                        self._astronaut.react_to_collision()
+
+            for obstacle in self._obstacles:
+                if self._taxi.crash_on_obstacle(obstacle):
+                    self._hud.loose_live()
+                    if is_astronaut_onboard:
+                        self._astronaut.react_to_collision()
+
+            if self._gate.is_closed() and self._taxi.crash_on_obstacle(self._gate):
                 self._hud.loose_live()
+                if is_astronaut_onboard:
+                    self._astronaut.react_to_collision()
+            # Modif A11 Fin
 
-        for obstacle in self._obstacles:
-            if self._taxi.crash_on_obstacle(obstacle):
-                self._hud.loose_live()
-
-        if self._gate.is_closed() and self._taxi.crash_on_obstacle(self._gate):
-            self._hud.loose_live()
-
-        for pump in self._pumps:
-            if self._taxi.crash_on_pump(pump):
-                self._hud.loose_live()
-            elif self._taxi.refuel_from(pump):
-                pass  # introduire les effets secondaires de remplissage de réservoir ici
+            for pump in self._pumps:
+                if self._taxi.crash_on_pump(pump):
+                    self._hud.loose_live()
+                elif self._taxi.refuel_from(pump):
+                    pass  # introduire les effets secondaires de remplissage de réservoir ici
 
     def render(self, screen: pygame.Surface) -> None:
         """
@@ -175,11 +201,17 @@ class LevelScene(Scene):
     def _retry_current_astronaut(self) -> None:
         """ Replace le niveau dans l'état où il était avant la course actuelle. """
         self._gate.close()
-        self._astronauts = [Astronaut(self._pads[3], self._pads[0], 20.00),
-                            Astronaut(self._pads[2], self._pads[4], 20.00),
-                            Astronaut(self._pads[0], self._pads[1], 20.00),
-                            Astronaut(self._pads[4], self._pads[2], 20.00),
-                            Astronaut(self._pads[1], self._pads[3], 20.00),
-                            Astronaut(self._pads[0], Pad.UP, 20.00)]
+
+        # Début modif M15 : Sauvegarder les données des astronautes au lieu de les créer directement
+        self._astronaut_data = [
+            (self._pads[3], self._pads[0], 20.00),
+            (self._pads[2], self._pads[4], 20.00),
+            (self._pads[0], self._pads[1], 20.00),
+            (self._pads[4], self._pads[2], 20.00),
+            (self._pads[1], self._pads[3], 20.00),
+            (self._pads[0], Pad.UP, 20.00)
+        ]
+        # Fin modif M15
+
         self._last_taxied_astronaut_time = time.time()
         self._astronaut = None

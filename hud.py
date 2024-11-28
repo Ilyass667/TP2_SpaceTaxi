@@ -20,7 +20,9 @@ class HUD:
         if not hasattr(self, '_initialized'):
             self._settings = GameSettings()
 
-            self._money_font = pygame.font.Font(None, 36)
+            # Modif M8 Début : Changer la police utilisée pour afficher les montants d’argent
+            self._money_font = pygame.font.Font(self._settings.FONT_BOOMBOX2, 28)
+            # Modif M8 Fin
 
             self._bank_money = 0
             self._bank_money_surface = self._render_bank_money_surface()

@@ -34,10 +34,27 @@ class Pad(pygame.sprite.Sprite):
         background_width = text_width + background_height  # + hauteur, pour les coins arrondis
         self._label_background = Pad._build_label(background_width, background_height)
 
-        self._label_text_offset = ((self.image.get_width() - text_width) / 2 + 1, 3)
-        self._label_background_offset = ((self.image.get_width() - background_width) / 2, 2)
+        # Début modif M2 : Recherche de la vraie zone plate en haut
+        collision_bounds = self._get_top_flat_zone()
+        if collision_bounds:
+            collision_x_min, collision_x_max, y_position = collision_bounds
+            collision_center_x = (collision_x_min + collision_x_max) / 2
 
-        self.image.blit(self._label_background, self._label_background_offset)#, special_flags = pygame.BLEND_RGBA_ADD)
+            # Centrer le texte
+            text_offset_x = collision_center_x - text_width / 2
+
+            # Centrer l’arrière-plan gris
+            background_offset_x = collision_center_x - background_width / 2
+        else:
+            # Aucun plateau détecté, centrage par défaut
+            text_offset_x = (self.image.get_width() - text_width) / 2
+            background_offset_x = (self.image.get_width() - background_width) / 2
+
+        self._label_text_offset = (text_offset_x, 3)  # Appliquer l'offset calculé pour le texte
+        self._label_background_offset = (background_offset_x, 2)  # Appliquer l'offset calculé pour le background
+        # Fin modif M2
+
+        self.image.blit(self._label_background, self._label_background_offset)  # Dessine l'arrière-plan du texte
         self.image.blit(self._label_text, self._label_text_offset)
 
         self.rect = self.image.get_rect()
@@ -53,13 +70,31 @@ class Pad(pygame.sprite.Sprite):
     def update(self, *args, **kwargs) -> None:
         pass
 
+    # Début modif M2 : Méthode pour détecter la vraie zone plate
+    def _get_top_flat_zone(self) -> tuple:
+        """
+        Trouve la première grande zone plate (surface de collision continue) en haut du masque.
+        :return: (x_min, x_max, y_position) de la zone plate
+        """
+        width, height = self.mask.get_size()
+
+        for y in range(height):  # Parcourir les lignes du haut vers le bas
+            collision_points = [x for x in range(width) if self.mask.get_at((x, y))]
+            if len(collision_points) > 1:  # Trouver une ligne avec une zone continue
+                x_min = min(collision_points)
+                x_max = max(collision_points)
+                return x_min, x_max, y  # Retourne la première zone plate trouvée
+
+        return None  # Aucune zone plate détectée
+    # Fin modif M2
+
     @staticmethod
     def _build_label(width: int, height: int) -> pygame.Surface:
         """
-        Construit l'étiquette (text holder) semi-tranparente sur laquelle on affiche le nom de la plateforme
+        Construit l'étiquette (text holder) semi-transparente sur laquelle on affiche le nom de la plateforme.
         :param width: largeur de l'étiquette
         :param height: hauteur de l'étiquette
-        :return: une surface contenant un rectangle arrondi semi-trasparent (l'étiquette)
+        :return: une surface contenant un rectangle arrondi semi-transparent (l'étiquette)
         """
         surface = pygame.Surface((width, height), pygame.SRCALPHA)
 

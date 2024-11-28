@@ -199,8 +199,10 @@ class Astronaut(pygame.sprite.Sprite):
             if self.rect.x == self._target_x:
                 if self._target_pad is not Pad.UP and self._target_x == self._target_pad.astronaut_end.x:
                     self._state = AstronautState.REACHED_DESTINATION
+                    print("Arriver donc on met effet desintegre")
                 else:
                     self._state = AstronautState.ONBOARD
+                    print("Entre dans taxi Donc on met effet desintegre")
                     if self._target_pad is None:
                         self._pad_please_clips[0].play()
                     else:
@@ -302,3 +304,9 @@ class Astronaut(pygame.sprite.Sprite):
         heys = [pygame.mixer.Sound("voices/gary_hey_01.mp3")]
 
         return hey_taxis, pad_pleases, heys
+    #Modif A11 Début:
+    def react_to_collision(self) -> None:
+        """ Joue un son lorsque l'astronaute est frappé par un taxi. """
+        if self._hey_clips:
+            random.choice(self._hey_clips).play()
+    #Modif A11 Fin

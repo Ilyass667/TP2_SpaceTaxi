@@ -74,7 +74,7 @@ class Taxi(pygame.sprite.Sprite):
         self._reinitialize()
 
     @property
-    def pad_landed_on(self) -> pad or None:
+    def pad_landed_on(self) -> Pad or None:
         return self._pad_landed_on
 
     def board_astronaut(self, astronaut: Astronaut) -> None:
@@ -162,7 +162,67 @@ class Taxi(pygame.sprite.Sprite):
         Vérifie si le taxi a quitté le niveau (par la sortie).
         :return: True si le taxi est sorti du niveau, False sinon
         """
-        return self.rect.y <= -self.rect.height
+        if self.rect.y <= -self.rect.height:
+            # Modif C13 Début
+            self._reactor_sound.stop()
+            # Modif C13 Fin
+            return True
+        return False
+
+    # Modif: C6 Début
+    def burn_astronaute(self, astronaut: Astronaut) -> bool:
+        """
+        Vérifie si le réacteur du taxi brûle un astronaute.
+        :param astronaut: astronaute pour lequel vérifier
+        :return: True si le réacteur touche l'astronaute, False sinon
+        """
+        if astronaut.is_onboard():
+            return False
+
+        # Récupérer les zones des réacteurs actifs
+        reactor_rects = self.get_reactor_rects()
+
+        for reactor, rect in reactor_rects.items():
+            if rect.colliderect(astronaut.rect):
+                print(f"Collision détectée avec le réacteur {reactor}.")
+                return True
+
+        return False
+
+    def get_reactor_rects(self) -> dict:
+        """
+        Renvoie les rectangles représentant les zones des réacteurs.
+        :return: Un dictionnaire contenant les rectangles pour chaque réacteur.
+        """
+        reactor_rects = {}
+
+        if self._flags & self._FLAG_BOTTOM_REACTOR:
+            reactor_rects["bottom"] = pygame.Rect(
+                self.rect.x + self.rect.width // 3,
+                self.rect.y + self.rect.height - 5,
+                self.rect.width // 3,
+                5
+            )
+
+        if self._flags & self._FLAG_TOP_REACTOR:
+            reactor_rects["top"] = pygame.Rect(
+                self.rect.x + self.rect.width // 3,
+                self.rect.y,
+                self.rect.width // 3,
+                5
+            )
+
+        if self._flags & self._FLAG_REAR_REACTOR:
+            reactor_rects["rear"] = pygame.Rect(
+                self.rect.x,
+                self.rect.y + self.rect.height // 2 - 5,
+                5,
+                10
+            )
+
+        return reactor_rects
+    #Modif: C9 Fin
+
 
     def hit_astronaut(self, astronaut: Astronaut) -> bool:
         """
