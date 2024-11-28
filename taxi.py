@@ -46,7 +46,7 @@ class Taxi(pygame.sprite.Sprite):
     _MAX_ACCELERATION_Y_UP = 0.08
     _MAX_ACCELERATION_Y_DOWN = 0.05
 
-    _MAX_VELOCITY_SMOOTH_LANDING = 0.50  # vitesse maximale permise pour un atterrissage en douceur
+    _MAX_VELOCITY_SMOOTH_LANDING = 500  # vitesse maximale permise pour un atterrissage en douceur
     _CRASH_ACCELERATION = 0.10
 
     _FRICTION_MUL = 0.9995  # la vitesse horizontale est multipliée par la friction
@@ -74,7 +74,7 @@ class Taxi(pygame.sprite.Sprite):
         self._reinitialize()
 
     @property
-    def pad_landed_on(self) -> pad or None:
+    def pad_landed_on(self) -> Pad or None:
         return self._pad_landed_on
 
     def board_astronaut(self, astronaut: Astronaut) -> None:
