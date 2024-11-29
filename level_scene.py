@@ -132,6 +132,7 @@ class LevelScene(Scene):
             if self._taxi.land_on_pad(pad):
                 pass  # introduire les effets secondaires d'un atterrissage ici
             elif self._taxi.crash_on_pad(pad):
+                
                 self._hud.loose_live()
 
         for obstacle in self._obstacles:
