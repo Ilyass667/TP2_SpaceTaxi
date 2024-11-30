@@ -24,12 +24,21 @@ from level_loading_scene import LevelLoadingScene
 from level_scene import LevelScene
 from scene_manager import SceneManager
 from splash_scene import SplashScene
-
+            
 
 def main() -> None:
     """ Programme principal. """
     pygame.init()
     pygame.mixer.init()
+
+# M7 -------bs image de licone----------------------------------- 
+# Modifie l'icon au demarrage du jeu 
+    icon_space_taxi = "img/Icone.png"  
+    try:
+        icon = pygame.image.load(icon_space_taxi)  
+        pygame.display.set_icon(icon)       
+    except pygame.error as e:
+        print(f"Erreur  {e}")
 
     settings = GameSettings()
     screen = pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))

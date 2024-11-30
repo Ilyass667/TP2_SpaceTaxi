@@ -10,3 +10,6 @@ Level screen:
   Sci-Fi Music Loop 01 by Magmi.Soundtracks -- https://freesound.org/s/476556/ -- License: Creative Commons 0
   Jetpack Low by knova -- https://freesound.org/s/170278/ -- License: Attribution 4.0
   Car Crash by squareal -- https://freesound.org/s/237375/ -- License: Creative Commons 0
+
+crash Sounds:
+ 426021__hobotrails__car-accident-with-squeal-and-crash.wav -- https://freesound.org/people/HoBoTrails/sounds/426021/ -- License: Creative Commons 0

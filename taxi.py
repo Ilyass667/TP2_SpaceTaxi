@@ -66,15 +66,16 @@ class Taxi(pygame.sprite.Sprite):
         self._reactor_sound = pygame.mixer.Sound("snd/170278__knova__jetpack-low.wav")
         self._reactor_sound.set_volume(0)
         self._reactor_sound.play(-1)
-
-        self._crash_sound = pygame.mixer.Sound("snd/237375__squareal__car-crash.wav")
-
+#----------- A13 ----- Bs changer la musique crash taxi ----------------------------------------------------------
+        self._crash_sound = pygame.mixer.Sound("snd/426021__hobotrails__car-accident-with-squeal-and-crash.wav")
+      
+#----------- ----------------------------------------------------------------------------------------------------------
         self._surfaces, self._masks = Taxi._load_and_build_surfaces()
 
         self._reinitialize()
 
     @property
-    def pad_landed_on(self) -> pad or None:
+    def pad_landed_on(self) ->None:
         return self._pad_landed_on
 
     def board_astronaut(self, astronaut: Astronaut) -> None:
@@ -185,13 +186,57 @@ class Taxi(pygame.sprite.Sprite):
         :return: True si le taxi est détruit, False sinon
         """
         return self._flags & Taxi._FLAG_DESTROYED == Taxi._FLAG_DESTROYED
-
+    
+ #  C4 -- BS verifie si les deux pattes touches -------------------------------------------------
     def land_on_pad(self, pad: Pad) -> bool:
         """
         Vérifie si le taxi est en situation d'atterrissage sur une plateforme.
         :param pad: plateforme pour laquelle vérifier
-        :return: True si le taxi est atterri, False sinon
+        :return: True si le taxi est atterri, False sinon"""
+
+        gear_out = self._flags & Taxi._FLAG_GEAR_OUT == Taxi._FLAG_GEAR_OUT
+        if not gear_out:
+            return False
+
+    # Vérifie la vitesse pour un atterrissage en douceur
+        if self._velocity_y > Taxi._MAX_VELOCITY_SMOOTH_LANDING or self._velocity_y < 0.0:
+            return False
+
+    # Vérifie si le rectangle du taxi touche celui de la plateforme
+        if not self.rect.colliderect(pad.rect):
+            return False
+
+    # Points des pattes (exemple : positions relatives au taxi)
+        left_foot = (self.rect.left + 5, self.rect.bottom)
+        right_foot = (self.rect.right - 5, self.rect.bottom)
+
+    # Vérifie si les deux pattes touchent la plateforme
+        if not (pad.rect.collidepoint(left_foot) and pad.rect.collidepoint(right_foot)):
+            # Si au moins une patte n'est pas sur la plateforme, le taxi crash
+            self._flags = Taxi._FLAG_DESTROYED
+            self._crash_sound.play()
+            self._velocity_x = 0.0
+            self._acceleration_x = 0.0
+            self._acceleration_y = Taxi._CRASH_ACCELERATION
+            return False
+
+        # Si toutes les conditions sont respectées, le taxi atterrit en douceur
+        self.rect.bottom = pad.rect.top + 4
+        self._pos_y = float(self.rect.y)
+        self._flags &= Taxi._FLAG_LEFT | Taxi._FLAG_GEAR_OUT
+        self._velocity_x = self._velocity_y = self._acceleration_x = self._acceleration_y = 0.0
+        self._pad_landed_on = pad
+
+        if self._astronaut and self._astronaut.target_pad.number == pad.number:
+            self.unboard_astronaut()
+
+        return True
+ #  C4 --  ---------------------------------------------------------------------------------------------------
         """
+        Vérifie si le taxi est en situation d'atterrissage sur une plateforme.
+        :param pad: plateforme pour laquelle vérifier
+        :return: True si le taxi est atterri, False sinon
+        
         gear_out = self._flags & Taxi._FLAG_GEAR_OUT == Taxi._FLAG_GEAR_OUT
         if not gear_out:
             return False
@@ -212,7 +257,7 @@ class Taxi(pygame.sprite.Sprite):
                 self.unboard_astronaut()
             return True
 
-        return False
+        return False"""
 
     def refuel_from(self, pump: Pump) -> bool:
         """

@@ -80,6 +80,7 @@ class LevelScene(Scene):
         Met à jour le niveau de jeu. Cette méthode est appelée à chaque itération de la boucle de jeu.
         :param delta_time: temps écoulé (en secondes) depuis la dernière trame affichée
         """
+       
         if not self._music_started:
             self._music.play(-1)
             self._music_started = True
@@ -130,8 +131,10 @@ class LevelScene(Scene):
 
         for pad in self._pads:
             if self._taxi.land_on_pad(pad):
+                self._taxi.update()
                 pass  # introduire les effets secondaires d'un atterrissage ici
             elif self._taxi.crash_on_pad(pad):
+               
                 self._hud.loose_live()
 
         for obstacle in self._obstacles:
