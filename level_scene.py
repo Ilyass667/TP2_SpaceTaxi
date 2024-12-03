@@ -152,46 +152,32 @@ class LevelScene(Scene):
                 elif self._taxi.crash_on(pad): # M4
                     self._hud.loose_live()
                     if is_astronaut_onboard:
+                        self._astronaut.set_trip_money(0)
                         self._astronaut.react_to_collision()
 
             for obstacle in self._obstacles:
                 if self._taxi.crash_on(obstacle): # M4
                     self._hud.loose_live()
                     if is_astronaut_onboard:
+                        self._astronaut.set_trip_money(0)
                         self._astronaut.react_to_collision()
 
             if self._gate.is_closed() and self._taxi.crash_on(self._gate): # M4
                 self._hud.loose_live()
                 if is_astronaut_onboard:
-                    self._astronaut.react_to_collision()
+                        self._astronaut.set_trip_money(0)
+                        self._astronaut.react_to_collision()
             # Modif A11 Fin
 
             for pump in self._pumps:
                 if self._taxi.crash_on(pump): # M4
                     self._hud.loose_live()
+                    if is_astronaut_onboard:
+                        self._astronaut.set_trip_money(0)
+                        self._astronaut.react_to_collision()
                 elif self._taxi.refuel_from(pump):
                     pass  # introduire les effets secondaires de remplissage de réservoir ici
-                if self._astronaut and self._astronaut._trip_money:
-                    self._astronaut._trip_money = 0 # C12
-
-        for obstacle in self._obstacles:
-            if self._taxi.crash_on(obstacle): # M4
-                self._hud.loose_live()
-                if self._astronaut and self._astronaut._trip_money:
-                    self._astronaut._trip_money = 0 # C12
-
-        if self._gate.is_closed() and self._taxi.crash_on(self._gate): # M4
-            self._hud.loose_live()
-            if self._astronaut and self._astronaut._trip_money:
-                    self._astronaut._trip_money = 0 # C12
-
-        for pump in self._pumps:
-            if self._taxi.crash_on(pump): # M4
-                self._hud.loose_live()
-                if self._astronaut and self._astronaut._trip_money:
-                    self._astronaut._trip_money = 0 # C12
-            elif self._taxi.refuel_from(pump):
-                pass  # introduire les effets secondaires de remplissage de réservoir ici
+                
 
     def render(self, screen: pygame.Surface) -> None:
         """
