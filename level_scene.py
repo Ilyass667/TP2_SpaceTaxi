@@ -128,7 +128,7 @@ class LevelScene(Scene):
             elif self._taxi.pad_landed_on:
                 if self._taxi.pad_landed_on.number == self._astronaut.source_pad.number:
                     if self._astronaut.is_waiting_for_taxi():
-                        self._astronaut.jump(self._taxi.rect.x)
+                        self._astronaut.jump(self._taxi.get_door_x()) # C7
             elif self._astronaut.is_jumping_on_starting_pad():
                 self._astronaut.wait()
         else:
@@ -172,6 +172,27 @@ class LevelScene(Scene):
                     self._hud.loose_live()
                 elif self._taxi.refuel_from(pump):
                     pass  # introduire les effets secondaires de remplissage de réservoir ici
+                if self._astronaut and self._astronaut._trip_money:
+                    self._astronaut._trip_money = 0 # C12
+
+        for obstacle in self._obstacles:
+            if self._taxi.crash_on_obstacle(obstacle):
+                self._hud.loose_live()
+                if self._astronaut and self._astronaut._trip_money:
+                    self._astronaut._trip_money = 0 # C12
+
+        if self._gate.is_closed() and self._taxi.crash_on_obstacle(self._gate):
+            self._hud.loose_live()
+            if self._astronaut and self._astronaut._trip_money:
+                    self._astronaut._trip_money = 0 # C12
+
+        for pump in self._pumps:
+            if self._taxi.crash_on_pump(pump):
+                self._hud.loose_live()
+                if self._astronaut and self._astronaut._trip_money:
+                    self._astronaut._trip_money = 0 # C12
+            elif self._taxi.refuel_from(pump):
+                pass  # introduire les effets secondaires de remplissage de réservoir ici
 
     def render(self, screen: pygame.Surface) -> None:
         """

@@ -34,6 +34,8 @@ class SplashScene(Scene):
         # Modif A2 Fin
 
         self._fade_out_start_time = None
+        self._transitioning = False  # C1
+
 
         # Modif A1 Début : Création de la surface noire pour couvrir toute la fenêtre
         screen_size = pygame.display.get_surface().get_size()  # Récupération dynamique des dimensions
@@ -48,9 +50,10 @@ class SplashScene(Scene):
         # Modif A3 Fin
 
     def handle_event(self, event: pygame.event.Event) -> None:
-        if event.type == pygame.KEYDOWN:
+        if event.type == pygame.KEYDOWN and not self._transitioning: # C1
             if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                 self._fade_out_start_time = pygame.time.get_ticks()
+                self._transitioning = True # C1
                 SceneManager().change_scene("level1_load", SplashScene._FADE_OUT_DURATION)
 
     def update(self, delta_time: float) -> None:
