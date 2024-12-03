@@ -132,19 +132,26 @@ class LevelScene(Scene):
             if self._taxi.land_on_pad(pad):
                 pass  # introduire les effets secondaires d'un atterrissage ici
             elif self._taxi.crash_on_pad(pad):
-                
                 self._hud.loose_live()
+                if self._astronaut and self._astronaut._trip_money:
+                    self._astronaut._trip_money = 0 # C12
 
         for obstacle in self._obstacles:
             if self._taxi.crash_on_obstacle(obstacle):
                 self._hud.loose_live()
+                if self._astronaut and self._astronaut._trip_money:
+                    self._astronaut._trip_money = 0 # C12
 
         if self._gate.is_closed() and self._taxi.crash_on_obstacle(self._gate):
             self._hud.loose_live()
+            if self._astronaut and self._astronaut._trip_money:
+                    self._astronaut._trip_money = 0 # C12
 
         for pump in self._pumps:
             if self._taxi.crash_on_pump(pump):
                 self._hud.loose_live()
+                if self._astronaut and self._astronaut._trip_money:
+                    self._astronaut._trip_money = 0 # C12
             elif self._taxi.refuel_from(pump):
                 pass  # introduire les effets secondaires de remplissage de réservoir ici
 
