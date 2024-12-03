@@ -56,7 +56,7 @@ class SplashScene(Scene):
                 self._transitioning = True # C1
                 SceneManager().change_scene("level1_load", SplashScene._FADE_OUT_DURATION)
 
-    def update(self, delta_time: float) -> None:
+    def update(self) -> None:
         # Modif A2 Début : Démarrer la musique dès le début du fondu
         if not self._music_started:
             self._music.play(loops=-1, fade_ms=1000)  # La musique démarre avec un fondu

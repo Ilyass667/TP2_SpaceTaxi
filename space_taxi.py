@@ -52,18 +52,17 @@ def main() -> None:
 
     try:
         while True:
-
-            delta_time = clock.tick(settings.FPS) / 1000  # en secondes
+            clock.tick(settings.FPS) / 1000 # en secondes, # M9
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     quit_game()
                 scene_manager.handle_event(event)
 
-            scene_manager.update(delta_time)
+            scene_manager.update()
 
             scene_manager.render(screen)
-
+ 
             if show_fps:
                 fps = clock.get_fps()
                 fps_text = fps_font.render(f"FPS: {int(fps)}", True, (255, 255, 255))

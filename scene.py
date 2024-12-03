@@ -10,7 +10,7 @@ class Scene(ABC):
         pass
 
     @abstractmethod
-    def update(self, delta_time: float) -> None:
+    def update(self) -> None: # M9
         pass
 
     @abstractmethod
@@ -20,3 +20,4 @@ class Scene(ABC):
     @abstractmethod
     def surface(self) -> pygame.Surface:
         pass
+    
