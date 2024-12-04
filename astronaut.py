@@ -1,6 +1,7 @@
 import pygame
 import random
 import time
+import math
 
 from enum import Enum, auto
 from pad import Pad
@@ -47,7 +48,7 @@ class Astronaut(pygame.sprite.Sprite):
         self._source_pad = source_pad
         self._target_pad = target_pad
 
-        self._trip_money = trip_money
+        self._trip_money = self.calculate_distance_trip_money(trip_money) # M16
         self._time_is_money = 0.0
         self._last_saved_time = None
 
@@ -92,6 +93,21 @@ class Astronaut(pygame.sprite.Sprite):
 
     def get_trip_money(self) -> float:
         return self._trip_money
+    
+    def calculate_distance_trip_money(self, trip_money: float) -> float: # M16
+        """
+        Calcule le montant du voyage en fonction de la distance entre les centres
+        des pads source et destination.
+        """
+        source_center = self._source_pad.get_center()
+        target_center = self._target_pad.get_center()
+
+        distance = math.sqrt((target_center[0] - source_center[0])**2 + 
+                             (target_center[1] - source_center[1])**2)
+
+        trip_money_calulated = distance * Astronaut._ONE_CENT + trip_money
+
+        return max(trip_money_calulated, 0)
 
     def has_reached_destination(self) -> bool:
         return self._state == AstronautState.REACHED_DESTINATION

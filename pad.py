@@ -67,6 +67,9 @@ class Pad(pygame.sprite.Sprite):
     def draw(self, surface: pygame.Surface) -> None:
         surface.blit(self.image, self.rect)
 
+    def get_center(self): # M16
+        return (self.rect.x + self.rect.width / 2, self.rect.y + self.rect.height / 2)
+
     def update(self, *args, **kwargs) -> None:
         pass
 
