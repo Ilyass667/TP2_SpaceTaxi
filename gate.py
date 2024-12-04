@@ -22,3 +22,6 @@ class Gate(Obstacle):
 
     def open(self) -> True:
         self._closed = False
+
+    def get_center(self): # C11
+        return (self.rect.x + self.rect.width / 2, self.rect.y + self.rect.height / 2)

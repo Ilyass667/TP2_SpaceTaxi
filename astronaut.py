@@ -5,6 +5,7 @@ import math
 
 from enum import Enum, auto
 from pad import Pad
+from gate import Gate
 
 
 class AstronautState(Enum):
@@ -36,7 +37,7 @@ class Astronaut(pygame.sprite.Sprite):
                      AstronautState.JUMPING_LEFT : 0.15,
                      AstronautState.JUMPING_RIGHT : 0.15}
 
-    def __init__(self, source_pad: Pad, target_pad: Pad, trip_money: float) -> None:
+    def __init__(self, source_pad: Pad, target_pad: Pad, gate: Gate ,trip_money: float) -> None:
         """
         Initialise une instance d'astronaute.
         :param source_pad: le pad sur lequel apparaîtra l'astronaute
@@ -47,6 +48,7 @@ class Astronaut(pygame.sprite.Sprite):
 
         self._source_pad = source_pad
         self._target_pad = target_pad
+        self._gate = gate # C11
 
         self._trip_money = self.calculate_distance_trip_money(trip_money) # M16
         self._time_is_money = 0.0
@@ -100,8 +102,13 @@ class Astronaut(pygame.sprite.Sprite):
         des pads source et destination.
         """
         source_center = self._source_pad.get_center()
-        target_center = self._target_pad.get_center()
+        target_center = None
 
+        if self._target_pad is not Pad.UP:
+            target_center = self._target_pad.get_center()
+        else:
+            target_center = self._gate.get_center()
+            
         distance = math.sqrt((target_center[0] - source_center[0])**2 + 
                              (target_center[1] - source_center[1])**2)
 

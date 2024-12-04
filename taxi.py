@@ -229,8 +229,9 @@ class Taxi(pygame.sprite.Sprite):
             self._flags &= Taxi._FLAG_LEFT | Taxi._FLAG_GEAR_OUT
             self._velocity.x = self._velocity.y = self._acceleration.x = self._acceleration.y = 0.0
             self._pad_landed_on = pad
-            if self._astronaut and self._astronaut.target_pad.number == pad.number:
-                self.unboard_astronaut()
+            if self._astronaut: # C11
+                if self._astronaut.target_pad is not Pad.UP and self._astronaut.target_pad.number == pad.number:
+                    self.unboard_astronaut()
             return True
 
         return False
@@ -253,16 +254,6 @@ class Taxi(pygame.sprite.Sprite):
         """ Réinitialise le taxi. """
         self._reinitialize()
 
-    def unboard_astronaut(self) -> None:
-        """ Fait descendre l'astronaute qui se trouve à bord. """
-        if self._astronaut.target_pad is not Pad.UP:
-            self._astronaut.move(self.rect.x, self._pad_landed_on.rect.y - self._astronaut.rect.height)
-            self._astronaut.jump(self._pad_landed_on.astronaut_end.x)
-
-        self._hud.add_bank_money(self._astronaut.get_trip_money())
-        self._astronaut.set_trip_money(0.0)
-        self._hud.set_trip_money(0.0)
-        self._astronaut = None
 
     def unboard_astronaut(self) -> None:
         """ Fait descendre l'astronaute qui se trouve à bord. """
