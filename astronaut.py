@@ -227,10 +227,11 @@ class Astronaut(pygame.sprite.Sprite):
                     self._state = AstronautState.ONBOARD
                     print("Entre dans taxi Donc on met effet desintegre")
                     if self._target_pad is None:
-                        self._pad_please_clips[0].play()
+                    # Modif Début M13
+                        self._play_destination_clip()
                     else:
-                        self._pad_please_clips[self._target_pad.number].play()
-
+                       self._play_destination_clip()
+                    # Modif Fin M13
                 return
 
             self._pos_x += self._velocity
@@ -250,6 +251,19 @@ class Astronaut(pygame.sprite.Sprite):
         if self._state == AstronautState.WAITING:
             clip = random.choice(self._hey_taxi_clips)
             clip.play()
+
+    # Debut Modif M13
+    def _play_destination_clip(self) -> None:
+        """
+        Joue un clip audio pour indiquer la destination de l'astronaute.
+        """
+        if self._target_pad is not None and self._pad_please_clips:
+            clip_index = self._target_pad.number if self._target_pad.number < len(self._pad_please_clips) else -1
+            if clip_index >= 0:
+                self._pad_please_clips[clip_index].play()
+        else:
+                self._pad_please_clips[0].play()
+    # Fin Modif M13
 
     @staticmethod
     def _load_and_build_frames() -> tuple:
