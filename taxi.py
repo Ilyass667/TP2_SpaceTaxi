@@ -77,8 +77,8 @@ class Taxi(pygame.sprite.Sprite):
         #Modif A14 Fin
 
         self._initial_pos = pos
-        self._elevation = None
-        self._elevation_offset = 50
+        self._elevation = None # A4
+        self._elevation_offset = 5 # A4
 
         self._hud = HUD()
 
@@ -308,10 +308,9 @@ class Taxi(pygame.sprite.Sprite):
             return False
         if self._fuel_level <= 0 and not self.is_destroyed():
             self._flags = Taxi._FLAG_DESTROYED
-            self._crash_sound.play()
-            self._velocity_x = 0.0
-            self._acceleration_x = 0.0
-            self._acceleration_y = Taxi._CRASH_ACCELERATION
+            self._crash_sound.play()    
+            self._velocity = pygame.Vector2(0, 0) # C5 refait
+            self._acceleration = pygame.Vector2(0, 0) # C5 refait
             return True
         return False
     # Modif: A14 Fin
@@ -436,10 +435,10 @@ class Taxi(pygame.sprite.Sprite):
         """
         taxi_y = self.rect.y
 
-        if self._pad_landed_on and self._elevation is None:
+        if self._pad_landed_on and self._elevation is None: # A4
             self._elevation = taxi_y
         elif self._elevation is not None:
-            if taxi_y > self._elevation - self._elevation_offset:
+            if taxi_y < self._elevation - self._elevation_offset:
                 self._elevation = None
                 return True
 
