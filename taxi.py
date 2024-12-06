@@ -47,9 +47,19 @@ class Taxi(pygame.sprite.Sprite):
     _MAX_ACCELERATION_Y_DOWN = 0.05
 
     _MAX_VELOCITY_SMOOTH_LANDING = 0.50  # vitesse maximale permise pour un atterrissage en douceur
+    #Modif A15 Début
+    _MAX_VELOCITY_ROUGH_LANDING = 1.0  # Vitesse maximale pour un atterrissage difficile (entre crash et doux)
+    #Modif A15 Fin
+
+    _CRASH_ACCELERATION = 0.10
 
     _FRICTION_MUL = 0.9995  # la vitesse horizontale est multipliée par la friction
     _GRAVITY_ADD = 0.005  # la gravité est ajoutée à la vitesse verticale
+
+
+    _REAR_REACTOR_CONSUMPTION = 0.001
+    _BOTTOM_REACTOR_CONSUMPTION = 0.0005
+    _TOP_REACTOR_CONSUMPTION = 0.00025
 
     def __init__(self, pos: tuple) -> None:
         """
@@ -57,6 +67,14 @@ class Taxi(pygame.sprite.Sprite):
         :param pos:
         """
         super(Taxi, self).__init__()
+        #Modif A15 Début
+        self._smooth_landing_sound = pygame.mixer.Sound("snd/smooth_landing_snd.wav")
+        self._rough_landing_sound = pygame.mixer.Sound("snd/rough_landing_snd.wav")
+        #Modif A15 Fin
+
+        #Modif A14 Début
+        self._fuel_level = 2.0  # Niveau d'essence initial (de 0 à 1)
+        #Modif A14 Fin
 
         self._initial_pos = pos
         self._elevation = None
@@ -80,7 +98,7 @@ class Taxi(pygame.sprite.Sprite):
 
     def board_astronaut(self, astronaut: Astronaut) -> None:
         self._astronaut = astronaut
-    
+
     def crash_on(self, obj) -> bool:
         """
         Vérifie si le taxi est en situation de crash contre un objet (Pad, Obstacle ou Pump).
@@ -150,7 +168,9 @@ class Taxi(pygame.sprite.Sprite):
                 return True
 
         return False
+    # Modif: C6 Fin
 
+    # Modif: C9 Début
     def get_reactor_rects(self) -> dict:
         """
         Renvoie les rectangles représentant les zones des réacteurs.
@@ -218,21 +238,32 @@ class Taxi(pygame.sprite.Sprite):
         if not gear_out:
             return False
 
-        if self._velocity.y > Taxi._MAX_VELOCITY_SMOOTH_LANDING or self._velocity.y < 0.0:#self._acceleration.y < 0.0:
-            return False
-
         if not self.rect.colliderect(pad.rect):
             return False
 
         if pygame.sprite.collide_mask(self, pad):
+            # Vérifier le type d'atterrissage
+            is_rough_landing = Taxi._MAX_VELOCITY_SMOOTH_LANDING < abs(
+                self._velocity.y) <= Taxi._MAX_VELOCITY_ROUGH_LANDING
+
+            if abs(self._velocity.y) > Taxi._MAX_VELOCITY_ROUGH_LANDING:
+                # Considérer comme un crash normal
+                return False
+
+            # Jouer le son correspondant
+            if is_rough_landing:
+                self._rough_landing_sound.play()
+            else:
+                self._smooth_landing_sound.play()
+
+            # Atterrissage réussi, réinitialiser la position
             self.rect.bottom = pad.rect.top + 4
             self._pos.y = float(self.rect.y)
             self._flags &= Taxi._FLAG_LEFT | Taxi._FLAG_GEAR_OUT
             self._velocity.x = self._velocity.y = self._acceleration.x = self._acceleration.y = 0.0
             self._pad_landed_on = pad
-            if self._astronaut: # C11
-                if self._astronaut.target_pad is not Pad.UP and self._astronaut.target_pad.number == pad.number:
-                    self.unboard_astronaut()
+            if self._astronaut and self._astronaut.target_pad.number == pad.number:
+                self.unboard_astronaut()
             return True
 
         return False
@@ -267,6 +298,24 @@ class Taxi(pygame.sprite.Sprite):
         self._hud.set_trip_money(0.0)
         self._astronaut = None
 
+    # Modif: A14 Début
+    def crash_due_to_fuel(self) -> bool:
+        """
+        Vérifie si le taxi manque d'essence, provoquant un crash.
+        :return: True si le taxi manque d'essence et doit crasher, False sinon.
+        """
+        if self._flags & Taxi._FLAG_DESTROYED == Taxi._FLAG_DESTROYED:
+            return False
+        if self._fuel_level <= 0 and not self.is_destroyed():
+            self._flags = Taxi._FLAG_DESTROYED
+            self._crash_sound.play()
+            self._velocity_x = 0.0
+            self._acceleration_x = 0.0
+            self._acceleration_y = Taxi._CRASH_ACCELERATION
+            return True
+        return False
+    # Modif: A14 Fin
+
     def get_door_x(self): # C7
         if self._flags & Taxi._FLAG_LEFT:
             return self.rect.left + 20
@@ -279,6 +328,11 @@ class Taxi(pygame.sprite.Sprite):
         :param args: inutilisé
         :param kwargs: inutilisé
         """
+        # Modif Début A14 : Consommation d'essence
+        self._consume_fuel()
+        if self._fuel_level <= 0:
+            return
+        # Modif Fin A14
 
         # ÉTAPE 1 - gérer les touches présentement enfoncées
         self._handle_keys()
@@ -307,6 +361,25 @@ class Taxi(pygame.sprite.Sprite):
         # ÉTAPE 4 - sélectionner la bonne image en fonction de l'état du taxi
         self._select_image()
 
+    # Modif Début A14
+    def _consume_fuel(self) -> None:
+        """ Réduit le niveau d'essence en fonction des réacteurs actifs. """
+
+        if self._flags & Taxi._FLAG_DESTROYED == Taxi._FLAG_DESTROYED:
+            return
+
+        consumption = 0
+        if self._flags & Taxi._FLAG_BOTTOM_REACTOR:
+            consumption += Taxi._BOTTOM_REACTOR_CONSUMPTION
+        if self._flags & Taxi._FLAG_TOP_REACTOR:
+            consumption += Taxi._TOP_REACTOR_CONSUMPTION
+        if self._flags & Taxi._FLAG_REAR_REACTOR:
+            consumption += Taxi._REAR_REACTOR_CONSUMPTION
+
+        self._fuel_level -= consumption
+        self._hud.update_fuel(self._fuel_level)
+    # Modif Fin A14
+
     def _handle_keys(self) -> None:
         """ Change ou non l'état du taxi en fonction des touches présentement enfoncées. """
         if self._flags & Taxi._FLAG_DESTROYED == Taxi._FLAG_DESTROYED:
@@ -316,7 +389,7 @@ class Taxi(pygame.sprite.Sprite):
 
         gear_out = self._flags & Taxi._FLAG_GEAR_OUT == Taxi._FLAG_GEAR_OUT
 
-        if keys[pygame.K_LEFT] and keys[pygame.K_RIGHT]: # C2 elif pour le reste des cas
+        if keys[pygame.K_LEFT] and keys[pygame.K_RIGHT]:  # C2 elif pour le reste des cas
             self._flags &= ~Taxi._FLAG_REAR_REACTOR
             self._acceleration.x = 0.0
 
@@ -387,6 +460,8 @@ class Taxi(pygame.sprite.Sprite):
         self._pos = pygame.Vector2(round(self.rect.x), round(self.rect.y))
         self._velocity = pygame.Vector2(0, 0)
         self._acceleration = pygame.Vector2(0, 0)
+        # Réinitialiser le niveau de carburant
+        self._fuel_level = 2.0
 
         self._pad_landed_on = None
         self._taking_off = False
