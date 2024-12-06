@@ -203,6 +203,7 @@ class LevelScene(Scene):
                 self._hud.loose_live()
                 self._taxi._fuel_level = 1.0  # Réinitialiser le niveau d'essence
                 if is_astronaut_onboard:
+                    self._astronaut.set_trip_money(0) # C12
                     self._astronaut.react_to_collision()
                 self._retry_current_astronaut()
                 return
@@ -214,20 +215,20 @@ class LevelScene(Scene):
                 elif self._taxi.crash_on(pad): # M4
                     self._hud.loose_live()
                     if is_astronaut_onboard:
-                        self._astronaut.set_trip_money(0)
+                        self._astronaut.set_trip_money(0) # C12
                         self._astronaut.react_to_collision()
 
             for obstacle in self._obstacles:
                 if self._taxi.crash_on(obstacle): # M4
                     self._hud.loose_live()
                     if is_astronaut_onboard:
-                        self._astronaut.set_trip_money(0)
+                        self._astronaut.set_trip_money(0) # C12
                         self._astronaut.react_to_collision()
 
             if self._gate.is_closed() and self._taxi.crash_on(self._gate): # M4
                 self._hud.loose_live()
                 if is_astronaut_onboard:
-                        self._astronaut.set_trip_money(0)
+                        self._astronaut.set_trip_money(0) # C12
                         self._astronaut.react_to_collision()
             # Modif A11 Fin
 
@@ -235,7 +236,7 @@ class LevelScene(Scene):
                 if self._taxi.crash_on(pump): # M4
                     self._hud.loose_live()
                     if is_astronaut_onboard:
-                        self._astronaut.set_trip_money(0)
+                        self._astronaut.set_trip_money(0) # C12
                         self._astronaut.react_to_collision()
                 elif self._taxi.refuel_from(pump):
                     # Modif A15 Début : Remplissage progressif du réservoir
