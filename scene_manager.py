@@ -80,12 +80,13 @@ class SceneManager:
                 if value == scene:
                     del self._scenes[key]
                     break
-
+    
+    # Pour Debug
     def print_scenes_periodically(self) -> None:
         """Print les scènes toutes les 3 secondes (3000 ms)."""
         current_time = pygame.time.get_ticks()
-        if current_time - self._last_print_time >= 3000:  # Vérifie si 3 secondes sont passées
-            self._last_print_time = current_time  # Met à jour le temps de la dernière impression
+        if current_time - self._last_print_time >= 3000:
+            self._last_print_time = current_time
             os.system("cls")
             for key, value in self._scenes.items():
                 print(f"Key: {key}, Value: {value}")

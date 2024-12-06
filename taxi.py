@@ -59,6 +59,8 @@ class Taxi(pygame.sprite.Sprite):
         super(Taxi, self).__init__()
 
         self._initial_pos = pos
+        self._elevation = None
+        self._elevation_offset = 50
 
         self._hud = HUD()
 
@@ -99,7 +101,6 @@ class Taxi(pygame.sprite.Sprite):
                     return True
 
         return False
-
 
     def draw(self, surface: pygame.Surface) -> None:
         """ Dessine le taxi sur la surface fournie comme argument. """
@@ -332,7 +333,6 @@ class Taxi(pygame.sprite.Sprite):
             self._flags &= ~Taxi._FLAG_REAR_REACTOR
             self._acceleration.x = 0.0
 
-
         if keys[pygame.K_DOWN] and keys[pygame.K_UP]: # C2 elif pour le reste des cas
             self._flags &= ~(Taxi._FLAG_TOP_REACTOR | Taxi._FLAG_BOTTOM_REACTOR)
             self._acceleration.y = 0.0
@@ -352,6 +352,27 @@ class Taxi(pygame.sprite.Sprite):
         elif not (keys[pygame.K_UP] or keys[pygame.K_DOWN]):
             self._flags &= ~(Taxi._FLAG_TOP_REACTOR | Taxi._FLAG_BOTTOM_REACTOR)
             self._acceleration.y = 0.0
+
+        if self.check_take_off_distance():
+            if keys[pygame.K_UP] and gear_out:
+                self._flags &= ~Taxi._FLAG_GEAR_OUT
+
+    def check_take_off_distance(self) -> bool:
+        """
+        Verifie si le taxi et dépasse une hauteur de la zone d'atterrissage.
+        """
+        taxi_y = self.rect.y
+
+        if self._pad_landed_on and self._elevation is None:
+            self._elevation = taxi_y
+        elif self._elevation is not None:
+            if taxi_y > self._elevation - self._elevation_offset:
+                self._elevation = None
+                return True
+
+        return False
+
+
 
     def _reinitialize(self) -> None:
         """ Initialise (ou réinitialise) les attributs de l'instance. """

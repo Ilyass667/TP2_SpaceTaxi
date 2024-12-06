@@ -13,8 +13,7 @@ class LevelLoadingScene(Scene): # M12
     """ Scène de chargement d'un niveau avec nom et animations. """
 
     _ZIGZAG_OFFSET = 50  # Distance horizontale de zigzag
-    _ZIGZAG_COUNT = 5  # Nombre total de zigzags
-    _CIRCLE_INTERVAL = 250  # Intervalle entre les boules de neige (ms)
+    _CIRCLE_INTERVAL = 50  # Intervalle entre les boules de neige (ms)
     _FADE_OUT_DURATION = 500  # Durée de la transition audio (ms)
 
     def __init__(self, level: int, level_name: str) -> None:
