@@ -11,7 +11,7 @@ import pygame
 from scene import Scene
 from scene_manager import SceneManager
 from file_error import FileError # C3
-
+from joystick_manager import JoystickManager # A5
 
 
 class SplashScene(Scene):
@@ -26,6 +26,8 @@ class SplashScene(Scene):
     def __init__(self) -> None:
         try:
             super().__init__()
+            self.joystick_manager = JoystickManager() # A5
+
             self._surface = pygame.image.load("img/splash.png").convert_alpha()
 
             # Modif A2 Début : Initialisation de la musique pour qu'elle démarre dès l'écran noir
@@ -37,7 +39,6 @@ class SplashScene(Scene):
             self._fade_out_start_time = None
             self._transitioning = False  # C1
 
-
             # Modif A1 Début : Création de la surface noire pour couvrir toute la fenêtre
             screen_size = pygame.display.get_surface().get_size()  # Récupération dynamique des dimensions
             self._black_surface = pygame.Surface(screen_size)  # Création de la surface noire
@@ -48,21 +49,34 @@ class SplashScene(Scene):
             self._font = pygame.font.Font("fonts/BoomBox2.ttf", 16)  # Taille de la police réduite
             self._text_opacity = 255  # Opacité du texte
             self._text_fading_out = True  # Indicateur de l'état du fading
+            pygame.joystick.init()
             # Modif A3 Fin
-        except FileNotFoundError as e: # C3
+        except FileNotFoundError as e:  # C3
             error_message = str(e)
             filename = error_message.split("No file '")[1].split("'")[0]
             error = FileError(f"FATAL ERROR loading {filename}")
             error.run()
 
     def handle_event(self, event: pygame.event.Event) -> None:
-        if event.type == pygame.KEYDOWN and not self._transitioning: # C1
+        if event.type == pygame.KEYDOWN and not self._transitioning:  # C1
             if event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                self._fade_out_start_time = pygame.time.get_ticks()
-                self._transitioning = True # C1
-                SceneManager().change_scene("level1_load", SplashScene._FADE_OUT_DURATION)
+                self.start_transition()
+
+        # Vérification de l'événement de pression du bouton 1 du gamepad
+        elif event.type == pygame.JOYBUTTONDOWN and not self._transitioning:  # A5
+            if event.button == 1:
+                self.start_transition()
+
+
+    def start_transition(self) -> None:
+        """ Lance la transition de fondu et change la scène. """
+        self._fade_out_start_time = pygame.time.get_ticks()
+        self._transitioning = True  # C1
+        SceneManager().change_scene("level1_load", SplashScene._FADE_OUT_DURATION)
 
     def update(self) -> None:
+        self.joystick_manager._find_joystick() # A5
+
         # Modif A2 Début : Démarrer la musique dès le début du fondu
         if not self._music_started:
             self._music.play(loops=-1, fade_ms=1000)  # La musique démarre avec un fondu

@@ -14,6 +14,7 @@ from pump import Pump
 from scene import Scene
 from scene_manager import SceneManager
 from taxi import Taxi
+from joystick_manager import JoystickManager # A5
 
 
 class LevelScene(Scene):
@@ -38,6 +39,7 @@ class LevelScene(Scene):
         self._text_visible = False
         # Modif A8 Fin:
 
+        self.joystick_manager = JoystickManager() # A5
 
         self._settings = GameSettings()
         self._hud = HUD()
@@ -113,6 +115,11 @@ class LevelScene(Scene):
                 self._taxi.reset()
                 self._retry_current_astronaut()
                 return
+        elif event.type == pygame.JOYBUTTONDOWN and self._taxi.is_destroyed(): # A5
+            if event.button == 1:
+                self._taxi.reset()
+                self._retry_current_astronaut()
+                return
 
         if self._taxi:
             self._taxi.handle_event(event)
@@ -121,6 +128,9 @@ class LevelScene(Scene):
         """
         Met à jour le niveau de jeu. Cette méthode est appelée à chaque itération de la boucle de jeu.
         """
+
+        self.joystick_manager._find_joystick() # A5
+
         if not self._music_started:
             self._music.play(-1)
             self._music_started = True

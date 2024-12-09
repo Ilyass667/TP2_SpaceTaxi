@@ -8,6 +8,7 @@ from obstacle import Obstacle
 from pad import Pad
 from pump import Pump
 from file_error import FileError # C3
+from joystick_manager import JoystickManager # A5
 
 
 class ImgSelector(Enum):
@@ -86,6 +87,7 @@ class Taxi(pygame.sprite.Sprite):
             self._initial_pos = pos
             self._elevation = None # A7
             self._elevation_offset = 5 # A7
+            self.joystick_manager = JoystickManager() # A5
 
             self._hud = HUD()
 
@@ -98,6 +100,7 @@ class Taxi(pygame.sprite.Sprite):
             self._surfaces, self._masks = Taxi._load_and_build_surfaces()
 
             self._reinitialize()
+            pygame.joystick.init() # A5
 
         except FileNotFoundError as e: # C3
             error_message = str(e)
@@ -141,14 +144,24 @@ class Taxi(pygame.sprite.Sprite):
         """ Gère les événements du taxi. """
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
-                if self._pad_landed_on is None:
-                    if self._flags & Taxi._FLAG_GEAR_OUT != Taxi._FLAG_GEAR_OUT:
-                        # pas de réacteurs du dessus et arrière lorsque le train d'atterrissage est sorti
-                        self._flags &= ~(Taxi._FLAG_TOP_REACTOR | Taxi._FLAG_REAR_REACTOR)
+                self.toggle_gear()
+        
+        # Gestion des événements du joystick
+        elif event.type == pygame.JOYBUTTONDOWN:
+            if event.button == 1:
+                self.toggle_gear()
 
-                    self._flags ^= Taxi._FLAG_GEAR_OUT  # flip le bit pour refléter le nouvel état
+    def toggle_gear(self) -> None:
+        """ Bascule l'état du train d'atterrissage. """
+        if self._pad_landed_on is None:
+            if self._flags & Taxi._FLAG_GEAR_OUT != Taxi._FLAG_GEAR_OUT:
+                # pas de réacteurs du dessus et arrière lorsque le train d'atterrissage est sorti
+                self._flags &= ~(Taxi._FLAG_TOP_REACTOR | Taxi._FLAG_REAR_REACTOR)
 
-                    self._select_image()
+            self._flags ^= Taxi._FLAG_GEAR_OUT  # flip le bit pour refléter le nouvel état
+
+            self._select_image()
+
 
     def has_exited(self) -> bool:
         """
@@ -349,8 +362,8 @@ class Taxi(pygame.sprite.Sprite):
         # Modif Fin A14
 
         # ÉTAPE 1 - gérer les touches présentement enfoncées
-        self._handle_keys()
-
+        self.joystick_manager._find_joystick() # A5
+        self._handle_Input()
         self._handle_landing_glide()  # Gère l'effet de glisse
 
         # ÉTAPE 2 - calculer la nouvelle position du taxi
@@ -396,55 +409,60 @@ class Taxi(pygame.sprite.Sprite):
         self._hud.update_fuel(self._fuel_level)
     # Modif Fin A14
 
-    def _handle_keys(self) -> None:
-        """ Change ou non l'état du taxi en fonction des touches présentement enfoncées. """
+    def _handle_Input(self) -> None: # A5
+        """Change ou non l'état du taxi en fonction des touches présentement enfoncées."""
         if self._flags & Taxi._FLAG_DESTROYED == Taxi._FLAG_DESTROYED:
             return
 
         keys = pygame.key.get_pressed()
 
-        gear_out = self._flags & Taxi._FLAG_GEAR_OUT == Taxi._FLAG_GEAR_OUT
+        axis_x = self.joystick_manager.get_joystick().get_axis(0) if self.joystick_manager.is_joystick_connected() else 0  # Gauche/Droite
+        axis_y = self.joystick_manager.get_joystick().get_axis(4) if self.joystick_manager.is_joystick_connected() else 0  # Gauche/Droite
 
-        if keys[pygame.K_LEFT] and keys[pygame.K_RIGHT]:  # C2 elif pour le reste des cas
+        gear_out = self._flags & Taxi._FLAG_GEAR_OUT == Taxi._FLAG_GEAR_OUT
+        gamepad_left = axis_x < -0.5
+        gamepad_right = axis_x > 0.5
+        gamepad_up = axis_y < -0.5
+        gamepad_down = axis_y > 0.5
+
+        # Contrôles gauche/droite
+        if (keys[pygame.K_LEFT] or gamepad_left) and (keys[pygame.K_RIGHT] or gamepad_right):
             self._flags &= ~Taxi._FLAG_REAR_REACTOR
             self._acceleration.x = 0.0
-
-        elif keys[pygame.K_LEFT] and not gear_out:
+        elif (keys[pygame.K_LEFT] or gamepad_left) and not gear_out:
             self._flags |= Taxi._FLAG_LEFT | Taxi._FLAG_REAR_REACTOR
             self._acceleration.x = max(self._acceleration.x - Taxi._REAR_REACTOR_POWER, -Taxi._MAX_ACCELERATION_X)
-
-        elif keys[pygame.K_RIGHT] and not gear_out:
+        elif (keys[pygame.K_RIGHT] or gamepad_right) and not gear_out:
             self._flags &= ~Taxi._FLAG_LEFT
-            self._flags |= self._FLAG_REAR_REACTOR
+            self._flags |= Taxi._FLAG_REAR_REACTOR
             self._acceleration.x = min(self._acceleration.x + Taxi._REAR_REACTOR_POWER, Taxi._MAX_ACCELERATION_X)
-
-        elif not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]):
+        else:
             self._flags &= ~Taxi._FLAG_REAR_REACTOR
             self._acceleration.x = 0.0
 
-        if keys[pygame.K_DOWN] and keys[pygame.K_UP]: # C2 elif pour le reste des cas
+        # Contrôles haut/bas
+        if (keys[pygame.K_DOWN] or gamepad_down) and (keys[pygame.K_UP] or gamepad_up):
             self._flags &= ~(Taxi._FLAG_TOP_REACTOR | Taxi._FLAG_BOTTOM_REACTOR)
             self._acceleration.y = 0.0
-
-        elif keys[pygame.K_DOWN] and not gear_out:
+        elif (keys[pygame.K_DOWN] or gamepad_down) and not gear_out:
             self._flags &= ~Taxi._FLAG_BOTTOM_REACTOR
             self._flags |= Taxi._FLAG_TOP_REACTOR
             self._acceleration.y = min(self._acceleration.y + Taxi._TOP_REACTOR_POWER, Taxi._MAX_ACCELERATION_Y_DOWN)
-
-        elif keys[pygame.K_UP]:
+        elif (keys[pygame.K_UP] or gamepad_up):
             self._flags &= ~Taxi._FLAG_TOP_REACTOR
             self._flags |= Taxi._FLAG_BOTTOM_REACTOR
             self._acceleration.y = max(self._acceleration.y - Taxi._BOTTOM_REACTOR_POWER, -Taxi._MAX_ACCELERATION_Y_UP)
             if self._pad_landed_on:
                 self._pad_landed_on = None
-
-        elif not (keys[pygame.K_UP] or keys[pygame.K_DOWN]):
+        else:
             self._flags &= ~(Taxi._FLAG_TOP_REACTOR | Taxi._FLAG_BOTTOM_REACTOR)
             self._acceleration.y = 0.0
 
+        # Vérification de la distance de décollage
         if self._check_take_off_distance():
-            if keys[pygame.K_UP] and gear_out:
+            if (keys[pygame.K_UP] or gamepad_up) and gear_out:
                 self._flags &= ~Taxi._FLAG_GEAR_OUT
+
 
     def _check_take_off_distance(self) -> bool:
         """
