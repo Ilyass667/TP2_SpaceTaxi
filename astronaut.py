@@ -6,6 +6,7 @@ import math
 from enum import Enum, auto
 from pad import Pad
 from gate import Gate
+from file_error import FileError # C3
 
 
 class AstronautState(Enum):
@@ -275,46 +276,54 @@ class Astronaut(pygame.sprite.Sprite):
                      - une liste de trames (image, masque) pour se déplacer vers la gauche
                      - une liste de trames (image, masque) pour se déplacer vers la droite
         """
-        nb_images = Astronaut._NB_WAITING_IMAGES + Astronaut._NB_WAVING_IMAGES + Astronaut._NB_JUMPING_IMAGES
-        sprite_sheet = pygame.image.load(Astronaut._ASTRONAUT_FILENAME).convert_alpha()
-        sheet_width = sprite_sheet.get_width()
-        sheet_height = sprite_sheet.get_height()
-        image_size = (sheet_width / nb_images, sheet_height)
+        try:
+            nb_images = Astronaut._NB_WAITING_IMAGES + Astronaut._NB_WAVING_IMAGES + Astronaut._NB_JUMPING_IMAGES
+            sprite_sheet = pygame.image.load(Astronaut._ASTRONAUT_FILENAME).convert_alpha()
+            sheet_width = sprite_sheet.get_width()
+            sheet_height = sprite_sheet.get_height()
+            image_size = (sheet_width / nb_images, sheet_height)
 
-        # astronaute qui attend
-        waiting_surface = pygame.Surface(image_size, flags=pygame.SRCALPHA)
-        source_rect = waiting_surface.get_rect()
-        waiting_surface.blit(sprite_sheet, (0, 0), source_rect)
-        waiting_mask = pygame.mask.from_surface(waiting_surface)
-        waiting_frames = [(waiting_surface, waiting_mask)]
+            # astronaute qui attend
+            waiting_surface = pygame.Surface(image_size, flags=pygame.SRCALPHA)
+            source_rect = waiting_surface.get_rect()
+            waiting_surface.blit(sprite_sheet, (0, 0), source_rect)
+            waiting_mask = pygame.mask.from_surface(waiting_surface)
+            waiting_frames = [(waiting_surface, waiting_mask)]
 
-        # astronaute qui envoie la main (les _NB_WAVING_IMAGES prochaines images)
-        waving_frames = []
-        first_frame = Astronaut._NB_WAITING_IMAGES
-        for frame in range(first_frame, first_frame + Astronaut._NB_WAVING_IMAGES):
-            surface = pygame.Surface(image_size, flags=pygame.SRCALPHA)
-            source_rect = surface.get_rect()
-            source_rect.x = frame * source_rect.width
-            surface.blit(sprite_sheet, (0, 0), source_rect)
-            mask = pygame.mask.from_surface(surface)
-            waving_frames.append((surface, mask))
-        waving_frames.extend(waving_frames[1:-1][::-1])
+            # astronaute qui envoie la main (les _NB_WAVING_IMAGES prochaines images)
+            waving_frames = []
+            first_frame = Astronaut._NB_WAITING_IMAGES
+            for frame in range(first_frame, first_frame + Astronaut._NB_WAVING_IMAGES):
+                surface = pygame.Surface(image_size, flags=pygame.SRCALPHA)
+                source_rect = surface.get_rect()
+                source_rect.x = frame * source_rect.width
+                surface.blit(sprite_sheet, (0, 0), source_rect)
+                mask = pygame.mask.from_surface(surface)
+                waving_frames.append((surface, mask))
+            waving_frames.extend(waving_frames[1:-1][::-1])
 
-        # astronaute qui se déplace en sautant (les _NB_JUMPING_IMAGES prochaines images)
-        jumping_left_frames = []
-        jumping_right_frames = []
-        first_frame = Astronaut._NB_WAITING_IMAGES + Astronaut._NB_WAVING_IMAGES
-        for frame in range(first_frame, first_frame + Astronaut._NB_JUMPING_IMAGES):
-            surface = pygame.Surface(image_size, flags=pygame.SRCALPHA)
-            source_rect = surface.get_rect()
-            source_rect.x = frame * source_rect.width
-            surface.blit(sprite_sheet, (0, 0), source_rect)
-            mask = pygame.mask.from_surface(surface)
-            jumping_right_frames.append((surface, mask))
+            # astronaute qui se déplace en sautant (les _NB_JUMPING_IMAGES prochaines images)
+            jumping_left_frames = []
+            jumping_right_frames = []
+            first_frame = Astronaut._NB_WAITING_IMAGES + Astronaut._NB_WAVING_IMAGES
+            for frame in range(first_frame, first_frame + Astronaut._NB_JUMPING_IMAGES):
+                surface = pygame.Surface(image_size, flags=pygame.SRCALPHA)
+                source_rect = surface.get_rect()
+                source_rect.x = frame * source_rect.width
+                surface.blit(sprite_sheet, (0, 0), source_rect)
+                mask = pygame.mask.from_surface(surface)
+                jumping_right_frames.append((surface, mask))
 
-            flipped_surface = pygame.transform.flip(surface, True, False)
-            flipped_mask = pygame.mask.from_surface(flipped_surface)
-            jumping_left_frames.append((flipped_surface, flipped_mask))
+                flipped_surface = pygame.transform.flip(surface, True, False)
+                flipped_mask = pygame.mask.from_surface(flipped_surface)
+                jumping_left_frames.append((flipped_surface, flipped_mask))
+            
+            
+        except FileNotFoundError as e: # C3
+            error_message = str(e)
+            filename = error_message.split("No file '")[1].split("'")[0]
+            error = FileError(f"FATAL ERROR loading {filename}")
+            error.run()
 
         return waiting_frames, waving_frames, jumping_left_frames, jumping_right_frames
 
@@ -327,18 +336,26 @@ class Astronaut(pygame.sprite.Sprite):
                      - une liste de clips (pygame.mixer.Sound) "Pad # please" ou "Up please"
                      - une liste de clips (pygame.mixer.Sound) "Hey!"
         """
-        hey_taxis = [pygame.mixer.Sound("voices/gary_hey_taxi_01.mp3"),
-                     pygame.mixer.Sound("voices/gary_hey_taxi_02.mp3"),
-                     pygame.mixer.Sound("voices/gary_hey_taxi_03.mp3")]
 
-        pad_pleases = [pygame.mixer.Sound("voices/gary_up_please_01.mp3"),
-                       pygame.mixer.Sound("voices/gary_pad_1_please_01.mp3"),
-                       pygame.mixer.Sound("voices/gary_pad_2_please_01.mp3"),
-                       pygame.mixer.Sound("voices/gary_pad_3_please_01.mp3"),
-                       pygame.mixer.Sound("voices/gary_pad_4_please_01.mp3"),
-                       pygame.mixer.Sound("voices/gary_pad_5_please_01.mp3")]
+        try: 
+            hey_taxis = [pygame.mixer.Sound("voices/gary_hey_taxi_01.mp3"),
+                        pygame.mixer.Sound("voices/gary_hey_taxi_02.mp3"),
+                        pygame.mixer.Sound("voices/gary_hey_taxi_03.mp3")]
 
-        heys = [pygame.mixer.Sound("voices/gary_hey_01.mp3")]
+            pad_pleases = [pygame.mixer.Sound("voices/gary_up_please_01.mp3"),
+                        pygame.mixer.Sound("voices/gary_pad_1_please_01.mp3"),
+                        pygame.mixer.Sound("voices/gary_pad_2_please_01.mp3"),
+                        pygame.mixer.Sound("voices/gary_pad_3_please_01.mp3"),
+                        pygame.mixer.Sound("voices/gary_pad_4_please_01.mp3"),
+                        pygame.mixer.Sound("voices/gary_pad_5_please_01.mp3")]
+
+            heys = [pygame.mixer.Sound("voices/gary_hey_01.mp3")]
+
+        except FileNotFoundError as e: # C3
+            error_message = str(e)
+            filename = error_message.split("No file '")[1].split("'")[0]
+            error = FileError(f"FATAL ERROR loading {filename}")
+            error.run()
 
         return hey_taxis, pad_pleases, heys
     #Modif A11 Début:

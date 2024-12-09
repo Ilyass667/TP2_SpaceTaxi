@@ -6,6 +6,7 @@ from scene import Scene
 from scene_manager import SceneManager
 from taxi import Taxi
 from game_settings import GameSettings
+from file_error import FileError # C3
 
 
 
@@ -17,37 +18,44 @@ class LevelLoadingScene(Scene): # M12
     _FADE_OUT_DURATION = 500  # Durée de la transition audio (ms)
 
     def __init__(self, level: int, level_name: str) -> None:
-        super().__init__()
-        self._level = level
-        self._level_name = level_name
-        self._bg_color = (0, 0, 0) 
+        try:
+            super().__init__()
+            self._level = level
+            self._level_name = level_name
+            self._bg_color = (0, 0, 0) 
 
-        # Position initiale du taxi : centre bas de l'écran
-        self._taxi = Taxi((GameSettings.SCREEN_WIDTH // 2, GameSettings.SCREEN_HEIGHT - 100))
-        self._zigzag_direction = 1  # 1 pour droite, -1 pour gauche
-        self._zigzag_progress = 0
-        self._transitioning = False
-        self._taxi_stopped = False
+            # Position initiale du taxi : centre bas de l'écran
+            self._taxi = Taxi((GameSettings.SCREEN_WIDTH // 2, GameSettings.SCREEN_HEIGHT - 100))
+            self._zigzag_direction = 1  # 1 pour droite, -1 pour gauche
+            self._zigzag_progress = 0
+            self._transitioning = False
+            self._taxi_stopped = False
 
-        # Texte
-        self._font = pygame.font.Font(None, 36)
-        self._level_text = self._font.render(f"Niveau {self._level}: {self._level_name}", True, (255, 255, 255))
-        self._text_pos = (
-            GameSettings.SCREEN_WIDTH // 2 - self._level_text.get_width() // 2,
-            GameSettings.SCREEN_HEIGHT // 2 - self._level_text.get_height() // 2,
-        )
+            # Texte
+            self._font = pygame.font.Font(None, 36)
+            self._level_text = self._font.render(f"Niveau {self._level}: {self._level_name}", True, (255, 255, 255))
+            self._text_pos = (
+                GameSettings.SCREEN_WIDTH // 2 - self._level_text.get_width() // 2,
+                GameSettings.SCREEN_HEIGHT // 2 - self._level_text.get_height() // 2,
+            )
 
-        # Effet boules de neige
-        self._particles = []
-        self._last_particle_time = pygame.time.get_ticks()
+            # Effet boules de neige
+            self._particles = []
+            self._last_particle_time = pygame.time.get_ticks()
 
-        # Musique
-        self._music = pygame.mixer.Sound("snd/390539__burghrecords__dystopian-future-fx-sounds-8.wav")
-        self._music_started = False
-        self._fade_out_start_time = None
+            # Musique
+            self._music = pygame.mixer.Sound("snd/390539__burghrecords__dystopian-future-fx-sounds-8.wav")
+            self._music_started = False
+            self._fade_out_start_time = None
 
-        # Surface pour l'affichage
-        self._surface = pygame.Surface((GameSettings.SCREEN_WIDTH, GameSettings.SCREEN_HEIGHT))
+            # Surface pour l'affichage
+            self._surface = pygame.Surface((GameSettings.SCREEN_WIDTH, GameSettings.SCREEN_HEIGHT))
+        
+        except FileNotFoundError as e: # C3
+            error_message = str(e)
+            filename = error_message.split("No file '")[1].split("'")[0]
+            error = FileError(f"FATAL ERROR loading {filename}")
+            error.run()
 
     def handle_event(self, event: pygame.event.Event) -> None:
         pass
@@ -109,5 +117,4 @@ class LevelLoadingScene(Scene): # M12
         screen.blit(self._taxi.image, self._taxi.rect.topleft)
 
     def surface(self) -> pygame.Surface:
-        """ Retourne la surface de la scène. """
         return self._surface

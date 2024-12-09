@@ -1,4 +1,3 @@
-
 # Modification A2 demander : la trame sonore s'exécuter dejà dans l'écran noir et durant la fondu car
 # le constructeur démarre déjà la musique dès que la scène est initialisée (self._music.play(loops=-1, fade_ms=1000)
 # ducoup est-ce que je fait des modification quand même pour montrer que c'est fait ?
@@ -11,6 +10,7 @@ import pygame
 
 from scene import Scene
 from scene_manager import SceneManager
+from file_error import FileError # C3
 
 
 
@@ -24,30 +24,36 @@ class SplashScene(Scene):
     _FADE_OUT_DURATION: int = 1500  # ms
 
     def __init__(self) -> None:
-        super().__init__()
-        self._surface = pygame.image.load("img/splash.png").convert_alpha()
+        try:
+            super().__init__()
+            self._surface = pygame.image.load("img/splash.png").convert_alpha()
 
-        # Modif A2 Début : Initialisation de la musique pour qu'elle démarre dès l'écran noir
-        self._music = pygame.mixer.Sound("snd/371516__mrthenoronha__space-game-theme-loop.wav")
-        self._fade_in_start_time = pygame.time.get_ticks()  # Début du fondu
-        self._music_started = False  # Indicateur pour savoir si la musique a démarré
-        # Modif A2 Fin
+            # Modif A2 Début : Initialisation de la musique pour qu'elle démarre dès l'écran noir
+            self._music = pygame.mixer.Sound("snd/371516__mrthenoronha__space-game-theme-loop.wav")
+            self._fade_in_start_time = pygame.time.get_ticks()  # Début du fondu
+            self._music_started = False  # Indicateur pour savoir si la musique a démarré
+            # Modif A2 Fin
 
-        self._fade_out_start_time = None
-        self._transitioning = False  # C1
+            self._fade_out_start_time = None
+            self._transitioning = False  # C1
 
 
-        # Modif A1 Début : Création de la surface noire pour couvrir toute la fenêtre
-        screen_size = pygame.display.get_surface().get_size()  # Récupération dynamique des dimensions
-        self._black_surface = pygame.Surface(screen_size)  # Création de la surface noire
-        self._black_surface.fill((0, 0, 0))  # Remplissage avec du noir
-        # Modif A1 Fin
+            # Modif A1 Début : Création de la surface noire pour couvrir toute la fenêtre
+            screen_size = pygame.display.get_surface().get_size()  # Récupération dynamique des dimensions
+            self._black_surface = pygame.Surface(screen_size)  # Création de la surface noire
+            self._black_surface.fill((0, 0, 0))  # Remplissage avec du noir
+            # Modif A1 Fin
 
-        # Modif A3 Début : Initialisation pour le texte animé
-        self._font = pygame.font.Font("fonts/BoomBox2.ttf", 16)  # Taille de la police réduite
-        self._text_opacity = 255  # Opacité du texte
-        self._text_fading_out = True  # Indicateur de l'état du fading
-        # Modif A3 Fin
+            # Modif A3 Début : Initialisation pour le texte animé
+            self._font = pygame.font.Font("fonts/BoomBox2.ttf", 16)  # Taille de la police réduite
+            self._text_opacity = 255  # Opacité du texte
+            self._text_fading_out = True  # Indicateur de l'état du fading
+            # Modif A3 Fin
+        except FileNotFoundError as e: # C3
+            error_message = str(e)
+            filename = error_message.split("No file '")[1].split("'")[0]
+            error = FileError(f"FATAL ERROR loading {filename}")
+            error.run()
 
     def handle_event(self, event: pygame.event.Event) -> None:
         if event.type == pygame.KEYDOWN and not self._transitioning: # C1
@@ -129,3 +135,4 @@ class SplashScene(Scene):
 
     def surface(self) -> pygame.Surface:
         return self._surface
+    

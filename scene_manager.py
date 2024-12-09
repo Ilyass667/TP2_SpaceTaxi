@@ -60,7 +60,7 @@ class SceneManager:
                 self._current_scene, self._next_scene = self._next_scene, None
                 self._transitioning = False
 
-        self.print_scenes_periodically()
+        # self.print_scenes_periodically()
 
     def render(self, screen: pygame.Surface) -> None:
         if self._current_scene:

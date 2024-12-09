@@ -1,6 +1,8 @@
 import pygame
 
 from game_settings import GameSettings
+from file_error import FileError # C3
+
 
 
 class HUD:
@@ -22,39 +24,45 @@ class HUD:
         if not hasattr(self, '_initialized'):
             self._settings = GameSettings()
 
-            # Modif Début A14
-            self._fuel_gauge_full = pygame.image.load(HUD._FUEL_GAUGE_FULL).convert_alpha()  # Charger jauge pleine
-            self._fuel_gauge_empty = pygame.image.load(HUD._FUEL_GAUGE_EMPTY).convert_alpha()  # Charger jauge vide
-            self._fuel_level = 1.0  # Niveau d'essence entre 0 (vide) et 1 (plein)
+            try:
+                # Modif Début A14
+                self._fuel_gauge_full = pygame.image.load(HUD._FUEL_GAUGE_FULL).convert_alpha()  # Charger jauge pleine
+                self._fuel_gauge_empty = pygame.image.load(HUD._FUEL_GAUGE_EMPTY).convert_alpha()  # Charger jauge vide
+                self._fuel_level = 1.0  # Niveau d'essence entre 0 (vide) et 1 (plein)
 
-            self._fuel_pos = pygame.Vector2(
-                (self._settings.SCREEN_WIDTH - self._fuel_gauge_full.get_width()) // 2,
-                self._settings.SCREEN_HEIGHT - self._fuel_gauge_full.get_height() - 10
-            )
-            self._fuel_font = pygame.font.Font(self._settings.FONT_BOOMBOX2, 14)  # Police pour "FUEL"
-            self._fuel_text_surface = self._fuel_font.render("FUEL", True, (255, 255, 255))  # Texte "FUEL"
+                self._fuel_pos = pygame.Vector2(
+                    (self._settings.SCREEN_WIDTH - self._fuel_gauge_full.get_width()) // 2,
+                    self._settings.SCREEN_HEIGHT - self._fuel_gauge_full.get_height() - 10
+                )
+                self._fuel_font = pygame.font.Font(self._settings.FONT_BOOMBOX2, 14)  # Police pour "FUEL"
+                self._fuel_text_surface = self._fuel_font.render("FUEL", True, (255, 255, 255))  # Texte "FUEL"
 
-            # Modif Fin A14
+                # Modif Fin A14
 
 
-            # Modif M8 Début : Changer la police utilisée pour afficher les montants d’argent
-            self._money_font = pygame.font.Font(self._settings.FONT_BOOMBOX2, 28)
-            # Modif M8 Fin
+                # Modif M8 Début : Changer la police utilisée pour afficher les montants d’argent
+                self._money_font = pygame.font.Font(self._settings.FONT_BOOMBOX2, 28)
+                # Modif M8 Fin
 
-            self._bank_money = 0
-            self._bank_money_surface = self._render_bank_money_surface()
-            self._bank_money_pos = pygame.Vector2(20, self._settings.SCREEN_HEIGHT - (self._bank_money_surface.get_height() + 10))
+                self._bank_money = 0
+                self._bank_money_surface = self._render_bank_money_surface()
+                self._bank_money_pos = pygame.Vector2(20, self._settings.SCREEN_HEIGHT - (self._bank_money_surface.get_height() + 10))
 
-            self._trip_money = 0
-            self._trip_money_surface = self._render_trip_money_surface()
+                self._trip_money = 0
+                self._trip_money_surface = self._render_trip_money_surface()
 
-            self._lives = self._settings.NB_PLAYER_LIVES
-            self._lives_icon = pygame.image.load(HUD._LIVES_ICONS_FILENAME).convert_alpha()
-            self._lives_pos= pygame.Vector2(20, self._settings.SCREEN_HEIGHT - (self._lives_icon.get_height() + 40))
+                self._lives = self._settings.NB_PLAYER_LIVES
+                self._lives_icon = pygame.image.load(HUD._LIVES_ICONS_FILENAME).convert_alpha()
+                self._lives_pos= pygame.Vector2(20, self._settings.SCREEN_HEIGHT - (self._lives_icon.get_height() + 40))
 
-            self.visible = False
+                self.visible = False
+                self._initialized = True
 
-            self._initialized = True
+            except FileNotFoundError as e: # C3
+                error_message = str(e)
+                filename = error_message.split("No file '")[1].split("'")[0]
+                error = FileError(f"FATAL ERROR loading {filename}")
+                error.run()
 
     def render(self, screen: pygame.Surface) -> None:
 
