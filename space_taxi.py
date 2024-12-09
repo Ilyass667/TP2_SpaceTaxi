@@ -24,22 +24,20 @@ from level_loading_scene import LevelLoadingScene
 from level_scene import LevelScene
 from scene_manager import SceneManager
 from splash_scene import SplashScene
-            
+
 
 def main() -> None:
     """ Programme principal. """
     pygame.init()
     pygame.mixer.init()
-
-# M7 -------bs image de licone----------------------------------- 
-# Modifie l'icon au demarrage du jeu 
-    icon_space_taxi = "img/Icone.png"  
+# M7 - Modifie l'icon au demarrage du jeu
+    icon_space_taxi = "img/Icone.png"    
     try:
         icon = pygame.image.load(icon_space_taxi)  
         pygame.display.set_icon(icon)       
     except pygame.error as e:
         print(f"Erreur  {e}")
-
+# fin M7
     settings = GameSettings()
     screen = pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
     pygame.display.set_caption("Tribute to Space Taxi!")
@@ -55,24 +53,24 @@ def main() -> None:
     scene_manager.add_scene("splash", SplashScene())
     scene_manager.add_scene("level1_load", LevelLoadingScene(1))
     scene_manager.add_scene("level1", LevelScene(1))
+
     scene_manager.add_scene("level2_load", LevelLoadingScene(2))
 
     scene_manager.set_scene("splash")
 
     try:
         while True:
-
-            delta_time = clock.tick(settings.FPS) / 1000  # en secondes
+            clock.tick(settings.FPS) / 1000 # en secondes, # M9
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     quit_game()
                 scene_manager.handle_event(event)
 
-            scene_manager.update(delta_time)
+            scene_manager.update()
 
             scene_manager.render(screen)
-
+ 
             if show_fps:
                 fps = clock.get_fps()
                 fps_text = fps_font.render(f"FPS: {int(fps)}", True, (255, 255, 255))
