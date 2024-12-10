@@ -52,7 +52,7 @@ def main() -> None:
     scene_manager = SceneManager()
     scene_manager.add_scene("splash", SplashScene())
     scene_manager.add_scene("level1_load", LevelLoadingScene(1))
-    scene_manager.add_scene("level1", LevelScene(1))
+    scene_manager.add_scene("level1", LevelScene(1,"level1"))
 
     scene_manager.add_scene("level2_load", LevelLoadingScene(2))
 

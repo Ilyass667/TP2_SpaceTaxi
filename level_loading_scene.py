@@ -10,8 +10,8 @@ class LevelLoadingScene(Scene):
     _FADE_OUT_DURATION: int = 500  # ms
     _JINGLE_DURATION: int = 3000
     
-    def __init__(self, level: int) -> None:
-        super().__init__()
+    def __init__(self, level: int, name = None) -> None:
+        super().__init__(name)
         self._level = level
         self._surface = pygame.image.load("img/loading.png").convert_alpha()
         self._music = pygame.mixer.Sound("snd/390539__burghrecords__dystopian-future-fx-sounds-8.wav")

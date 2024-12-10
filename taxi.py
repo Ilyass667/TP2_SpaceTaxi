@@ -69,8 +69,11 @@ class Taxi(pygame.sprite.Sprite):
         self._crash_sound = pygame.mixer.Sound("snd/237375__squareal__car-crash.wav")
         self._rough_sound = pygame.mixer.Sound("snd/426021__hobotrails__car-accident-with-squeal-and-crash.wav")
         self._surfaces, self._masks = Taxi._load_and_build_surfaces()
-        
-     
+        # modif atterissage 
+        self._is_rough_landing = False
+        self._is_rough_landing_fading = False
+        self._start_fade_rough_time = None
+
         self._reinitialize()
 
     @property
@@ -209,7 +212,7 @@ class Taxi(pygame.sprite.Sprite):
         """
         return self._flags & Taxi._FLAG_DESTROYED == Taxi._FLAG_DESTROYED
 
-#------------------------------------------------------------------------------------------------
+
     def land_on_pad(self, pad: Pad) -> bool:
         """
         Vérifie si le taxi est en situation d'atterrissage sur une plateforme.
@@ -221,6 +224,7 @@ class Taxi(pygame.sprite.Sprite):
             return False
 
         if self._velocity.y > Taxi._MAX_VELOCITY_SMOOTH_LANDING or self._velocity.y < 0.0: #self._acceleration.y < 0.0:
+            
             return False
         
 
@@ -234,6 +238,7 @@ class Taxi(pygame.sprite.Sprite):
         # Vérifier si les deux pattes touchent la plateforme
     
         if not (pad.rect.collidepoint(left_foot) and pad.rect.collidepoint(right_foot)): 
+            
             self._crash_sound.play()
             #self.crash_on(pad)  # Appel à la méthode crash_on
             return False
@@ -295,6 +300,17 @@ class Taxi(pygame.sprite.Sprite):
             return self.rect.left + 20
         else:
             return self.rect.left + 15
+        
+    # A13 - condition et musique d'atterissage difficile    
+    def rough_landing(self, pad:Pad):
+        if pygame.sprite.collide_circle(self,pad) and self._velocity.y > Taxi._MAX_VELOCITY_SMOOTH_LANDING and self._flags != self._FLAG_DESTROYED:
+            self._rough_sound.play()
+
+    # A6 - condition - Image cas atterissage difficile 
+        if pygame.sprite.collide_rect(self, pad) and self._velocity.y > Taxi._MAX_VELOCITY_SMOOTH_LANDING and self._flags != self._FLAG_DESTROYED:
+            self._is_rough_landing = True
+
+
 
     def update(self, *args, **kwargs) -> None:
         """
@@ -327,6 +343,8 @@ class Taxi(pygame.sprite.Sprite):
         else:
             self._reactor_sound.set_volume(0)
 
+        
+        
         # ÉTAPE 4 - sélectionner la bonne image en fonction de l'état du taxi
         self._select_image()
 

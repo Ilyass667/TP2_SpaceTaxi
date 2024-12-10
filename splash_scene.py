@@ -23,8 +23,8 @@ class SplashScene(Scene):
 
     _FADE_OUT_DURATION: int = 1500  # ms
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self,name = None) -> None:
+        super().__init__(name)
         self._surface = pygame.image.load("img/splash.png").convert_alpha()
 
         # Modif A2 Début : Initialisation de la musique pour qu'elle démarre dès l'écran noir

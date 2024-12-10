@@ -21,12 +21,12 @@ class LevelScene(Scene):
 
     _TIME_BETWEEN_ASTRONAUTS: int = 5  # s
 
-    def __init__(self, level: int) -> None:
+    def __init__(self, level: int, name=None) -> None:
         """
         Initialise une instance de niveau de jeu.
         :param level: le numéro de niveau
         """
-        super().__init__()
+        super().__init__(name)
 
         self._level = level
         self._surface = pygame.image.load("img/space01.png").convert_alpha()
@@ -61,37 +61,29 @@ class LevelScene(Scene):
                       Pad(5, "img/pad05.png", (1040, 380), 30, 120)]
         self._pad_sprites = pygame.sprite.Group()
         self._pad_sprites.add(self._pads)
-        self._is_jingle_playing = False
+       
 
         self._reinitialize()
         self._hud.visible = True
-# A_ jouer un jingle avant le debut du jeu 
+
+# A17 jouer un jingle sonore avant que le taxi ne boube
     def _play_start_jingle(self):
         """Joue un jingle sonore au début du niveau ou après une vie perdue."""
         self._is_jingle_playing = True
         jingle_sound = pygame.mixer.Sound("snd/JingleGo.wav")
         jingle_sound.play()
-        #self._taxi.freeze()  # Bloquer le taxi temporairement
-        self._next_astronaut_delay = pygame.time.get_ticks() + jingle_sound.get_length() * 1000
-        
-       
+        time.sleep(jingle_sound.get_length())
        
     def handle_event(self, event: pygame.event.Event) -> None:
         """ Gère les événements PyGame. """
-        if event.type == pygame.USEREVENT + 1:
-            self._is_jingle_playing = False  # Débloquer les commandes
-            pygame.time.set_timer(pygame.USEREVENT + 1, 0)  # Désactiver le timer
-            return
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE and self._taxi.is_destroyed():
+                self._taxi.reset()
+                self._retry_current_astronaut()
+                return
 
-        if not self._is_jingle_playing:
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and self._taxi.is_destroyed():
-                    self._taxi.reset()
-                    self._retry_current_astronaut()
-                    return
-
-            if self._taxi:
-                self._taxi.handle_event(event)
+        if self._taxi:
+            self._taxi.handle_event(event)
 
     def update(self) -> None:
         """
@@ -100,10 +92,6 @@ class LevelScene(Scene):
         if not self._music_started:
             self._music.play(-1)
             self._music_started = True 
-
-        if self._is_jingle_playing:
-            return
-        # Ignorer la mise à jour pendant le jingle
         
         if self._taxi:
             self._taxi.update()
@@ -175,12 +163,16 @@ class LevelScene(Scene):
             is_astronaut_onboard = self._astronaut and self._astronaut.is_onboard()
 
             for pad in self._pads:
+                
                 if self._taxi.land_on_pad(pad):
                     pass
                 elif self._taxi.crash_on(pad): # M4
                     self._hud.loose_live()
                     if is_astronaut_onboard:
                         self._astronaut.react_to_collision()
+               
+                self._taxi.rough_landing(pad) 
+                    
 
             for obstacle in self._obstacles:
                 if self._taxi.crash_on(obstacle): # M4
@@ -245,6 +237,7 @@ class LevelScene(Scene):
         self._nb_taxied_astronauts = 0
         self._retry_current_astronaut()
         self._hud.reset()
+      
         
 
     def _retry_current_astronaut(self) -> None:

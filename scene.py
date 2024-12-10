@@ -4,7 +4,10 @@ from abc import ABC, abstractmethod
 
 class Scene(ABC):
     """ Classe abstraite de base pour les scènes. """
-
+    @abstractmethod
+    def __init__(self, name = None):
+        self.name = name
+        
     @abstractmethod
     def handle_event(self, event: pygame.event.Event) -> None:
         pass

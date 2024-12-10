@@ -3,6 +3,7 @@ import os
 
 from fade import Fade
 from scene import Scene
+#from level_scene import LevelScene  as ls
 
 
 class SceneManager:
@@ -23,7 +24,7 @@ class SceneManager:
 
             self._fade = None
             self._transitioning = False
-
+            
             self._initialized = True
             self._last_print_time = pygame.time.get_ticks()
 
@@ -59,6 +60,17 @@ class SceneManager:
 
                 self._current_scene, self._next_scene = self._next_scene, None
                 self._transitioning = False
+
+                # A17 condition pour jouer le 'Jingle'
+                if self._current_scene.name:
+                    hasLevel=False
+                    try:
+                        _=int(self._current_scene.name[-1])
+                        hasLevel=True
+                    except ValueError as err:
+                        hasLevel=False
+                    if hasLevel:
+                        self._current_scene._play_start_jingle()
 
         self.print_scenes_periodically()
 
