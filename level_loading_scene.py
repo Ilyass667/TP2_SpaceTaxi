@@ -1,6 +1,7 @@
 import pygame
 import random
 import math
+import os
 
 from scene import Scene
 from scene_manager import SceneManager
@@ -9,8 +10,7 @@ from game_settings import GameSettings
 from file_error import FileError # C3
 
 
-
-class LevelLoadingScene(Scene): # M12
+class LevelLoadingScene(Scene):  # M12
     """ Scène de chargement d'un niveau avec nom et animations. """
 
     _ZIGZAG_OFFSET = 50  # Distance horizontale de zigzag
@@ -71,14 +71,18 @@ class LevelLoadingScene(Scene): # M12
             self._music.set_volume(volume)
             if volume == 0:
                 self._fade_out_start_time = None
+                self._transitioning = False
+                SceneManager().change_scene(f"level{self._level}")
 
         # Effet boules de neige
         current_time = pygame.time.get_ticks()
         if current_time - self._last_particle_time > LevelLoadingScene._CIRCLE_INTERVAL:
-            angle = random.uniform(0, 2 * 3.14159)
+            angle = random.uniform(0, 2 * math.pi)
             speed = random.uniform(2, 4)
-            self._particles.append({"pos": [GameSettings.SCREEN_WIDTH // 2, GameSettings.SCREEN_HEIGHT // 2],
-                                    "vel": [speed * math.cos(angle), speed * math.sin(angle)]})
+            self._particles.append({
+                "pos": [GameSettings.SCREEN_WIDTH // 2, GameSettings.SCREEN_HEIGHT // 2],
+                "vel": [speed * math.cos(angle), speed * math.sin(angle)],
+            })
             self._last_particle_time = current_time
         for particle in self._particles:
             particle["pos"][0] += particle["vel"][0]
@@ -96,12 +100,17 @@ class LevelLoadingScene(Scene): # M12
 
             # Si le taxi touche le texte
             if self._taxi.rect.colliderect(
-                pygame.Rect(self._text_pos[0], self._text_pos[1], self._level_text.get_width(), self._level_text.get_height())
+                pygame.Rect(self._text_pos[0], self._text_pos[1], self._level_text.get_width(),
+                            self._level_text.get_height())
             ):
                 self._fade_out_start_time = pygame.time.get_ticks()
                 self._transitioning = True
-                self._taxi_stopped = True  # Arrêter le taxi
-                SceneManager().change_scene(f"level{self._level}", LevelLoadingScene._FADE_OUT_DURATION)
+                self._taxi_stopped = True
+                if self._level_exists():  # Vérifie si le niveau existe
+                    SceneManager().add_scene(f"level{self._level}", self._create_level_scene())
+                    print(f"Scène 'level{self._level}' ajoutée.")
+                else:
+                    print(f"Le niveau {self._level} n'existe pas. Transition annulée.")
 
     def render(self, screen: pygame.Surface) -> None:
         screen.fill(self._bg_color)
@@ -118,3 +127,15 @@ class LevelLoadingScene(Scene): # M12
 
     def surface(self) -> pygame.Surface:
         return self._surface
+
+    def _create_level_scene(self):
+        from level_scene import LevelScene  # j'ai retardé le import pour éviter les dépendances circulaires
+        return LevelScene(self._level)
+
+    def _level_exists(self) -> bool:
+        """
+        Vérifie si les fichiers de configuration du niveau existent.
+        :return: True si le niveau existe, False sinon.
+        """
+        level_file = f"levels/level{self._level}.cfg"
+        return os.path.exists(level_file)
