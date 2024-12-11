@@ -268,7 +268,6 @@ class Astronaut(pygame.sprite.Sprite):
                 self._current_frame = (self._current_frame + 1) % len(self._frames)
                 self._last_frame_time = current_time
 
-
         # ÉTAPE 3 - changer d'état si le moment est venu
         self._state_time += current_time - self._last_frame_time
         if self._state == AstronautState.WAITING:

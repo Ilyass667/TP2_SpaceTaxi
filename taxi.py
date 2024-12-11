@@ -48,6 +48,8 @@ class Taxi(pygame.sprite.Sprite):
     _MAX_ACCELERATION_Y_UP = 0.08
     _MAX_ACCELERATION_Y_DOWN = 0.05
 
+    _ELEVATION_OFFSET = 10 # A7
+
     _MAX_VELOCITY_SMOOTH_LANDING = 0.50  # vitesse maximale permise pour un atterrissage en douceur
     #Modif A15 Début
     _MAX_VELOCITY_ROUGH_LANDING = 1.0  # Vitesse maximale pour un atterrissage difficile (entre crash et doux)
@@ -86,7 +88,6 @@ class Taxi(pygame.sprite.Sprite):
 
             self._initial_pos = pos
             self._elevation = None # A7
-            self._elevation_offset = 5 # A7
             self.joystick_manager = JoystickManager() # A5
 
             self._hud = HUD()
@@ -459,9 +460,8 @@ class Taxi(pygame.sprite.Sprite):
             self._acceleration.y = 0.0
 
         # Vérification de la distance de décollage
-        if self._check_take_off_distance():
-            if (keys[pygame.K_UP] or gamepad_up) and gear_out:
-                self._flags &= ~Taxi._FLAG_GEAR_OUT
+        if self._check_take_off_distance() and gear_out:
+            self._flags &= ~Taxi._FLAG_GEAR_OUT
 
 
     def _check_take_off_distance(self) -> bool:
@@ -473,7 +473,7 @@ class Taxi(pygame.sprite.Sprite):
         if self._pad_landed_on and self._elevation is None: # A7
             self._elevation = taxi_y
         elif self._elevation is not None:
-            if taxi_y < self._elevation - self._elevation_offset:
+            if taxi_y < self._elevation - Taxi._ELEVATION_OFFSET:
                 self._elevation = None
                 return True
 

@@ -297,6 +297,10 @@ class LevelScene(Scene):
         
         self._astronaut_data = [ # C11 self_gate 
             (self._pads[3], self._pads[0], self._gate, 10.00),
+            (self._pads[2], self._pads[4], self._gate, 10.00),
+            (self._pads[0], self._pads[1], self._gate, 10.00),
+            (self._pads[4], self._pads[2], self._gate, 10.00),
+            (self._pads[1], self._pads[3], self._gate, 10.00),
             (self._pads[0], Pad.UP, self._gate, 10.00)
         ]
         # Fin modif M15
