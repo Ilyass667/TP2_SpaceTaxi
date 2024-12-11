@@ -81,6 +81,10 @@ class Astronaut(pygame.sprite.Sprite):
         self._current_frame = 0
         self._last_frame_time = time.time()
 
+        self.isFading = False
+        self.startFadeTime = None
+        self.durationFade = 10000
+        
     @property
     def source_pad(self) -> Pad:
         return self._source_pad
@@ -163,6 +167,16 @@ class Astronaut(pygame.sprite.Sprite):
         """
         current_time = time.time()
 
+        if self.isFading:
+            elapsedFading_time = pygame.time.get_ticks() - self.startFadeTime
+            target_alpha = min(255, (elapsedFading_time / self.durationFade) * 255)
+            print(f"Taxi fading: alpha = {target_alpha}")
+            self.image.set_alpha(target_alpha)
+            self.isFading = target_alpha < 255
+            if not self.isFading:
+                self.startFadeTime = None
+            return None
+        
         # ÉTAPE 1 - diminuer le montant de la course si le moment est venu
         if self._last_saved_time is None:
             self._last_saved_time = current_time

@@ -147,10 +147,12 @@ class LevelScene(Scene):
             
             if time.time() - self._last_taxied_astronaut_time >= LevelScene._TIME_BETWEEN_ASTRONAUTS:
                 # Début modif M15 : Créer l'astronaute dynamiquement au besoin
-                if self._nb_taxied_astronauts < len(self._astronaut_data):
+               if self._nb_taxied_astronauts < len(self._astronaut_data):
                     data = self._astronaut_data[self._nb_taxied_astronauts]
                     self._astronaut = Astronaut(*data)
-                    print(f"Astronaute {self._nb_taxied_astronauts + 1} a été créé.")   
+                    self._astronaut.isFading = True #--------------------------------------------------------------------
+                    self._astronaut.startFadeTime = pygame.time.get_ticks()
+                    print(f"Astronaute {self._nb_taxied_astronauts + 1} a été créé.")  # Afficher un message  
              # Afficher un message
            
                 # Fin modif M15
