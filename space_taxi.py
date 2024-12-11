@@ -30,14 +30,7 @@ def main() -> None:
     """ Programme principal. """
     pygame.init()
     pygame.mixer.init()
-# M7 - Modifie l'icon au demarrage du jeu
-    icon_space_taxi = "img/Icone.png"    
-    try:
-        icon = pygame.image.load(icon_space_taxi)  
-        pygame.display.set_icon(icon)       
-    except pygame.error as e:
-        print(f"Erreur  {e}")
-# fin M7
+
     settings = GameSettings()
     screen = pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
     pygame.display.set_caption("Tribute to Space Taxi!")
@@ -50,13 +43,13 @@ def main() -> None:
         fps_font = pygame.font.Font(None, 36)
 
     scene_manager = SceneManager()
-    scene_manager.add_scene("splash", SplashScene())
-    scene_manager.add_scene("level1_load", LevelLoadingScene(1))
-    scene_manager.add_scene("level1", LevelScene(1,"level1"))
 
-    scene_manager.add_scene("level2_load", LevelLoadingScene(2))
+    scene_manager.add_scene("splash", SplashScene()) # M12
+    scene_manager.add_scene("level1_load", LevelLoadingScene(1, "level1_load")) # M12
+    scene_manager.add_scene("level1", LevelScene(1)) # M12
+    scene_manager.add_scene("level2_load", LevelLoadingScene(2, "level2_load")) # M12
+    scene_manager.set_scene("splash") # M12
 
-    scene_manager.set_scene("splash")
 
     try:
         while True:

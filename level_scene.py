@@ -1,7 +1,9 @@
-import time
 import pygame
-
-
+import time
+import configparser  # Modif M5 Début : Import pour lire le fichier de configuration
+# Modif M5 Fin
+import threading  # Modif A8 Début import pour le fil d'exécution
+#Modif A8 Fin
 from astronaut import Astronaut
 from game_settings import GameSettings
 from gate import Gate
@@ -12,72 +14,118 @@ from pump import Pump
 from scene import Scene
 from scene_manager import SceneManager
 from taxi import Taxi
+from joystick_manager import JoystickManager # A5
 
 
 class LevelScene(Scene):
     """ Un niveau de jeu. """
 
     _FADE_OUT_DURATION: int = 500  # ms
-
     _TIME_BETWEEN_ASTRONAUTS: int = 5  # s
 
-    def __init__(self, level: int, name=None) -> None:
+    def __init__(self, level: int) -> None:
         """
         Initialise une instance de niveau de jeu.
         :param level: le numéro de niveau
         """
-        super().__init__(name)
-
+        super().__init__()
         self._level = level
-        self._surface = pygame.image.load("img/space01.png").convert_alpha()
-        self._music = pygame.mixer.Sound("snd/476556__magmisoundtracks__sci-fi-music-loop-01.wav")
-        self._music_started = False
-        self._fade_out_start_time = None
+
+        self._processed_pads = set()        # Modif A8 Début:
+        # Variables pour gérer l'affichage du texte avec effets
+        self._text_to_display = None
+        self._text_alpha = 0
+        self._text_rect = None
+        self._text_visible = False
+        # Modif A8 Fin:
+
+        self.joystick_manager = JoystickManager() # A5
 
         self._settings = GameSettings()
         self._hud = HUD()
 
         self._taxi = Taxi((self._settings.SCREEN_WIDTH / 2, self._settings.SCREEN_HEIGHT / 2))
 
-        self._gate = Gate("img/gate.png", (582, 3))
+        # Modif M5 Début : Initialiser _music_started par défaut
+        self._music_started = False
+        self._fade_out_start_time = None
+        # Modif M5 Fin
 
-        self._obstacles = [Obstacle("img/south01.png", (0, self._settings.SCREEN_HEIGHT - 141)),
-                           Obstacle("img/west01.png", (0, 0)),
-                           Obstacle("img/east01.png", (self._settings.SCREEN_WIDTH - 99, 0)),
-                           Obstacle("img/north01.png", (0, 0)),
-                           Obstacle("img/obstacle01.png", (840, 150)),
-                           Obstacle("img/obstacle02.png", (250, 200))]
-        self._obstacle_sprites = pygame.sprite.Group()
-        self._obstacle_sprites.add(self._obstacles)
-
-        self._pumps = [Pump("img/pump.png", (305, 335))]
-        self._pump_sprites = pygame.sprite.Group()
-        self._pump_sprites.add(self._pumps)
-
-        self._pads = [Pad(1, "img/pad01.png", (650, self._settings.SCREEN_HEIGHT - 68), 5, 5),
-                      Pad(2, "img/pad02.png", (510, 205), 90, 15),
-                      Pad(3, "img/pad03.png", (150, 360), 10, 10),
-                      Pad(4, "img/pad04.png", (670, 480), 30, 280),
-                      Pad(5, "img/pad05.png", (1040, 380), 30, 120)]
-        self._pad_sprites = pygame.sprite.Group()
-        self._pad_sprites.add(self._pads)
-       
+        # Modif M5 Début : Charger la configuration depuis un fichier
+        level_file = f"levels/level{self._level}.cfg"  # Dossier
+        self._load_level_config(level_file)
+        # Modif M5 Fin
 
         self._reinitialize()
         self._hud.visible = True
 
-# A17 jouer un jingle sonore avant que le taxi ne boube
+    # A17 jouer un jingle sonore avant que le taxi ne boube
     def _play_start_jingle(self):
         """Joue un jingle sonore au début du niveau ou après une vie perdue."""
         self._is_jingle_playing = True
         jingle_sound = pygame.mixer.Sound("snd/JingleGo.wav")
         jingle_sound.play()
         time.sleep(jingle_sound.get_length())
-       
+
+
+    def _evaluate_position(self, expr: str) -> int:
+
+        return eval(expr, {"SCREEN_WIDTH": self._settings.SCREEN_WIDTH,
+                           "SCREEN_HEIGHT": self._settings.SCREEN_HEIGHT})
+
+    # Modif M5 Début : Nouvelle méthode pour charger les données du fichier de configuration
+    def _load_level_config(self, file_name: str) -> None:
+        """
+        Charge les données du niveau à partir d'un fichier de configuration.
+        :param file_name: nom du fichier de configuration.
+        """
+        config = configparser.ConfigParser()
+        config.read(file_name)
+
+        # Charger le fond et la musique
+        self._surface = pygame.image.load(config['Level']['background']).convert_alpha()
+        self._music = pygame.mixer.Sound(config['Level']['music'])
+
+        # Charger la gate
+        gate_data = config['Gate']
+        gate_position = tuple(self._evaluate_position(pos) for pos in gate_data['position'].split(','))
+        self._gate = Gate(gate_data['image'], gate_position)
+
+        # Charger les obstacles
+        self._obstacles = []
+        for key, value in config['Obstacles'].items():
+            image, x, y = value.split(',')
+            position = (self._evaluate_position(x), self._evaluate_position(y))
+            self._obstacles.append(Obstacle(image, position))
+        self._obstacle_sprites = pygame.sprite.Group(self._obstacles)
+
+        # Charger les pumps
+        self._pumps = []
+        for key, value in config['Pumps'].items():
+            image, x, y = value.split(',')
+            position = (self._evaluate_position(x), self._evaluate_position(y))
+            self._pumps.append(Pump(image, position))
+        self._pump_sprites = pygame.sprite.Group(self._pumps)
+
+        # Charger les pads
+        self._pads = []
+        for key, value in config['Pads'].items():
+            number, image, x, y, fuel, cash = value.split(',')
+            position = (self._evaluate_position(x), self._evaluate_position(y))
+            self._pads.append(Pad(int(number), image, position, int(fuel), int(cash)))
+        self._pad_sprites = pygame.sprite.Group(self._pads)
+
+    # Modif M5 Fin
+
     def handle_event(self, event: pygame.event.Event) -> None:
         """ Gère les événements PyGame. """
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE and self._taxi.is_destroyed():
+                self._taxi.reset()
+                self._retry_current_astronaut()
+                return
+        elif event.type == pygame.JOYBUTTONDOWN and self._taxi.is_destroyed(): # A5
+            if event.button == 1:
                 self._taxi.reset()
                 self._retry_current_astronaut()
                 return
@@ -89,12 +137,12 @@ class LevelScene(Scene):
         """
         Met à jour le niveau de jeu. Cette méthode est appelée à chaque itération de la boucle de jeu.
         """
+
+        self.joystick_manager._find_joystick() # A5
+
         if not self._music_started:
             self._music.play(-1)
-            self._music_started = True 
-        
-        if self._taxi:
-            self._taxi.update()
+            self._music_started = True
 
         if self._fade_out_start_time:
             elapsed_time = pygame.time.get_ticks() - self._fade_out_start_time
@@ -112,6 +160,14 @@ class LevelScene(Scene):
 
             if self._astronaut.is_onboard():
                 self._taxi.board_astronaut(self._astronaut)
+                # Modif A8 Début:
+                # Afficher le texte "Pad X Please" lorsque l'astronaute monte dans le taxi
+                if self._astronaut.target_pad:
+                    pad_number = self._astronaut.target_pad.number
+                    self._display_pad_request(f"PAD {pad_number} PLEASE", pad_number)
+                # Modif A8 Fin:
+
+
                 if self._astronaut.target_pad is Pad.UP:
                     if self._gate.is_closed():
                         self._gate.open()
@@ -144,17 +200,12 @@ class LevelScene(Scene):
             elif self._astronaut.is_jumping_on_starting_pad():
                 self._astronaut.wait()
         else:
-            
             if time.time() - self._last_taxied_astronaut_time >= LevelScene._TIME_BETWEEN_ASTRONAUTS:
                 # Début modif M15 : Créer l'astronaute dynamiquement au besoin
-               if self._nb_taxied_astronauts < len(self._astronaut_data):
+                if self._nb_taxied_astronauts < len(self._astronaut_data):
                     data = self._astronaut_data[self._nb_taxied_astronauts]
                     self._astronaut = Astronaut(*data)
-                    self._astronaut.isFading = True #--------------------------------------------------------------------
-                    self._astronaut.startFadeTime = pygame.time.get_ticks()
-                    print(f"Astronaute {self._nb_taxied_astronauts + 1} a été créé.")  # Afficher un message  
-             # Afficher un message
-           
+                    print(f"Astronaute {self._nb_taxied_astronauts + 1} a été créé.")  # Afficher un message
                 # Fin modif M15
 
         # Mettez à jour le taxi uniquement s'il existe
@@ -164,56 +215,55 @@ class LevelScene(Scene):
             # Modif A11 Début:
             is_astronaut_onboard = self._astronaut and self._astronaut.is_onboard()
 
+            # Vérification du crash dû au manque d'essence
+            # Modif Début A14
+            if self._taxi.crash_due_to_fuel():
+                print("Crash dû au manque d'essence.")
+                self._hud.loose_live()
+                self._taxi._fuel_level = 1.0  # Réinitialiser le niveau d'essence
+                if is_astronaut_onboard:
+                    self._astronaut.set_trip_money(0) # C12
+                    self._astronaut.react_to_collision()
+                self._retry_current_astronaut()
+                return
+            # Modif Fin A14
+
             for pad in self._pads:
-                
                 if self._taxi.land_on_pad(pad):
                     pass
                 elif self._taxi.crash_on(pad): # M4
                     self._hud.loose_live()
                     if is_astronaut_onboard:
+                        self._astronaut.set_trip_money(0) # C12
                         self._astronaut.react_to_collision()
-               
-                self._taxi.rough_landing(pad) 
-                    
 
             for obstacle in self._obstacles:
                 if self._taxi.crash_on(obstacle): # M4
                     self._hud.loose_live()
                     if is_astronaut_onboard:
+                        self._astronaut.set_trip_money(0) # C12
                         self._astronaut.react_to_collision()
 
             if self._gate.is_closed() and self._taxi.crash_on(self._gate): # M4
                 self._hud.loose_live()
                 if is_astronaut_onboard:
-                    self._astronaut.react_to_collision()
+                        self._astronaut.set_trip_money(0) # C12
+                        self._astronaut.react_to_collision()
             # Modif A11 Fin
 
             for pump in self._pumps:
                 if self._taxi.crash_on(pump): # M4
                     self._hud.loose_live()
+                    if is_astronaut_onboard:
+                        self._astronaut.set_trip_money(0) # C12
+                        self._astronaut.react_to_collision()
                 elif self._taxi.refuel_from(pump):
-                    pass  # introduire les effets secondaires de remplissage de réservoir ici
-                if self._astronaut and self._astronaut._trip_money:
-                    self._astronaut._trip_money = 0 # C12
-
-        for obstacle in self._obstacles:
-            if self._taxi.crash_on(obstacle): # M4
-                self._hud.loose_live()
-                if self._astronaut and self._astronaut._trip_money:
-                    self._astronaut._trip_money = 0 # C12
-
-        if self._gate.is_closed() and self._taxi.crash_on(self._gate): # M4
-            self._hud.loose_live()
-            if self._astronaut and self._astronaut._trip_money:
-                    self._astronaut._trip_money = 0 # C12
-
-        for pump in self._pumps:
-            if self._taxi.crash_on(pump): # M4
-                self._hud.loose_live()
-                if self._astronaut and self._astronaut._trip_money:
-                    self._astronaut._trip_money = 0 # C12
-            elif self._taxi.refuel_from(pump):
-                pass  # introduire les effets secondaires de remplissage de réservoir ici
+                    # Modif A15 Début : Remplissage progressif du réservoir
+                    if self._taxi._fuel_level < 2.0:
+                        self._taxi._fuel_level += 0.003  # Remplir progressivement
+                        self._hud.update_fuel(self._taxi._fuel_level)  # Mettre à jour l'affichage du HUD
+                    # Modif A15 Fin
+                
 
     def render(self, screen: pygame.Surface) -> None:
         """
@@ -231,6 +281,12 @@ class LevelScene(Scene):
             self._astronaut.draw(screen)
         self._hud.render(screen)
 
+        # Afficher le texte si visible
+        if self._text_visible and self._text_to_display:
+            text_surface = self._text_to_display.copy()
+            text_surface.set_alpha(self._text_alpha)
+            screen.blit(text_surface, self._text_rect)
+
     def surface(self) -> pygame.Surface:
         return self._surface
 
@@ -239,23 +295,78 @@ class LevelScene(Scene):
         self._nb_taxied_astronauts = 0
         self._retry_current_astronaut()
         self._hud.reset()
-      
         
-
     def _retry_current_astronaut(self) -> None:
         """ Replace le niveau dans l'état où il était avant la course actuelle. """
         self._gate.close()
 
+        self._processed_pads.clear()
+
         # Début modif M15 : Sauvegarder les données des astronautes au lieu de les créer directement
-        self._astronaut_data = [
-            (self._pads[3], self._pads[0], 20.00),
-            (self._pads[2], self._pads[4], 20.00),
-            (self._pads[0], self._pads[1], 20.00),
-            (self._pads[4], self._pads[2], 20.00),
-            (self._pads[1], self._pads[3], 20.00),
-            (self._pads[0], Pad.UP, 20.00)
+        
+        self._astronaut_data = [ # C11 self_gate 
+            (self._pads[3], self._pads[0], self._gate, 10.00),
+            (self._pads[2], self._pads[4], self._gate, 10.00),
+            (self._pads[0], self._pads[1], self._gate, 10.00),
+            (self._pads[4], self._pads[2], self._gate, 10.00),
+            (self._pads[1], self._pads[3], self._gate, 10.00),
+            (self._pads[0], Pad.UP, self._gate, 10.00)
         ]
         # Fin modif M15
 
         self._last_taxied_astronaut_time = time.time()
         self._astronaut = None
+
+
+#Modif A8 Début:
+    def _display_pad_request(self, text: str, pad_number: int) -> None:
+        """
+        Affiche un texte au centre de l'écran avec des effets visuels :
+        - Apparition graduelle (0.25 s)
+        - Maintien visible (1.75 s)
+        - Disparition graduelle (0.5 s)
+        :param text: Le texte à afficher.
+        :param pad_number: Numéro du pad.
+        """
+        # Si un texte est déjà en cours d'affichage ou si le pad a déjà été traité, ne rien faire
+        if pad_number in self._processed_pads:
+            return
+
+        # Ajouter le pad aux pads traités
+        self._processed_pads.add(pad_number)
+
+        def fade_text():
+            font = pygame.font.Font(None, 72)  # Police par défaut, taille 72
+            text_surface = font.render(text, True, (255, 255, 255))  # Texte en blanc
+            text_rect = text_surface.get_rect(center=(self._settings.SCREEN_WIDTH // 2,
+                                                      self._settings.SCREEN_HEIGHT // 2))
+            self._text_to_display = text_surface
+            self._text_rect = text_rect
+
+            try:
+                # Apparition graduelle (0.25 s)
+                for alpha in range(0, 256, 25):
+                    self._text_alpha = alpha
+                    self._text_visible = True
+                    time.sleep(0.025)
+
+                # Maintenir visible (1.75 s)
+                time.sleep(1.75)
+
+                # Disparition graduelle (0.5 s)
+                for alpha in range(255, -1, -15):
+                    self._text_alpha = alpha
+                    time.sleep(0.05)
+
+            finally:
+                # Fin de l'affichage
+                self._text_visible = False
+                self._text_to_display = None
+                self._text_alpha = 0
+
+
+        # Lancer le processus d'affichage dans un thread
+        thread = threading.Thread(target=fade_text)
+        thread.start()
+
+#Modfi A8 FIn

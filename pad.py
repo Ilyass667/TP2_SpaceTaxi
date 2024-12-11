@@ -11,6 +11,10 @@ class Pad(pygame.sprite.Sprite):
     _TEXT_COLOR = (255, 255, 255)
     _HEIGHT = 40
 
+    # Début modif M3 : Cache global pour éviter les allocations multiples
+    _image_cache = {}
+    # Fin modif M3
+
     def __init__(self, number: int, filename: str, pos: tuple, astronaut_start_x: int, astronaut_end_x: int) -> None:
         """
         Initialise une instance de plateforme.
@@ -23,7 +27,15 @@ class Pad(pygame.sprite.Sprite):
         super(Pad, self).__init__()
 
         self.number = number
-        self.image = pygame.image.load(filename).convert_alpha()
+        # Début modif M3 : Chargement ou récupération de l'image depuis le cache
+        if filename in Pad._image_cache:
+            print(f"Image '{filename}' récupérée depuis le cache.")
+            self.image = Pad._image_cache[filename]
+        else:
+            print(f"Chargement de l'image '{filename}' en mémoire.")
+            self.image = pygame.image.load(filename).convert_alpha()
+            Pad._image_cache[filename] = self.image
+        # Fin modif M3
         self.mask = pygame.mask.from_surface(self.image)
 
         font = GameSettings().pad_font
@@ -66,6 +78,9 @@ class Pad(pygame.sprite.Sprite):
 
     def draw(self, surface: pygame.Surface) -> None:
         surface.blit(self.image, self.rect)
+
+    def get_center(self): # M16
+        return (self.rect.x + self.rect.width / 2, self.rect.y + self.rect.height / 2)
 
     def update(self, *args, **kwargs) -> None:
         pass

@@ -3,7 +3,6 @@ import os
 
 from fade import Fade
 from scene import Scene
-#from level_scene import LevelScene  as ls
 
 
 class SceneManager:
@@ -24,7 +23,7 @@ class SceneManager:
 
             self._fade = None
             self._transitioning = False
-            
+
             self._initialized = True
             self._last_print_time = pygame.time.get_ticks()
 
@@ -60,19 +59,22 @@ class SceneManager:
 
                 self._current_scene, self._next_scene = self._next_scene, None
                 self._transitioning = False
+               
+                # # A17 condition pour jouer le 'Jingle'
+                # if self._current_scene.name:
+                    
+                #     hasLevel=False
+                #     try:
+                #         _=int(self._current_scene.name[-1])
+                #         hasLevel=True
+                #     except ValueError as err:
+                #         hasLevel=False
+                #     if hasLevel:
+                #         hasLevel=True
+                #         self._current_scene._play_start_jingle()
+    
 
-                # A17 condition pour jouer le 'Jingle'
-                if self._current_scene.name:
-                    hasLevel=False
-                    try:
-                        _=int(self._current_scene.name[-1])
-                        hasLevel=True
-                    except ValueError as err:
-                        hasLevel=False
-                    if hasLevel:
-                        self._current_scene._play_start_jingle()
-
-        self.print_scenes_periodically()
+        # self.print_scenes_periodically()
 
     def render(self, screen: pygame.Surface) -> None:
         if self._current_scene:
@@ -92,12 +94,13 @@ class SceneManager:
                 if value == scene:
                     del self._scenes[key]
                     break
-
+    
+    # Pour Debug
     def print_scenes_periodically(self) -> None:
         """Print les scènes toutes les 3 secondes (3000 ms)."""
         current_time = pygame.time.get_ticks()
-        if current_time - self._last_print_time >= 3000:  # Vérifie si 3 secondes sont passées
-            self._last_print_time = current_time  # Met à jour le temps de la dernière impression
+        if current_time - self._last_print_time >= 3000:
+            self._last_print_time = current_time
             os.system("cls")
             for key, value in self._scenes.items():
                 print(f"Key: {key}, Value: {value}")
