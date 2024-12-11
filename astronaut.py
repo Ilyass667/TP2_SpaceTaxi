@@ -17,6 +17,8 @@ class AstronautState(Enum):
     JUMPING_LEFT = auto()
     ONBOARD = auto()
     REACHED_DESTINATION = auto()
+    INTEGRATION = auto()  # A9
+
 
 
 class Astronaut(pygame.sprite.Sprite):
@@ -31,6 +33,8 @@ class Astronaut(pygame.sprite.Sprite):
     _LOOSE_ONE_CENT_EVERY = 0.05  # perd 1 cent tous les 5 centièmes de seconde
     _ONE_CENT = 0.01
     _WAVING_DELAYS = 10.0, 30.0
+    _INTEGRATION_DELAY = 2.0  # A9
+
 
     # temps d'affichage pour les trames de chaque état affiché/animé
     _FRAME_TIMES = { AstronautState.WAITING : 0.1,
@@ -81,6 +85,18 @@ class Astronaut(pygame.sprite.Sprite):
         self._current_frame = 0
         self._last_frame_time = time.time()
 
+        self._state = AstronautState.INTEGRATION  # A9
+        self._waiting_frame = self._all_frames[AstronautState.WAITING][0][0] # A9
+        self._pxels_data = [] # A9
+        self._pxels_start_timestamp = 0  # A9
+        self._integration_done = False # A9
+
+        self._state = AstronautState.INTEGRATION  # Début dans l'état d'intégration
+        self._waiting_frame = self._all_frames[AstronautState.WAITING][0][0]
+        self._integration_pixels = []
+        self._integration_start_time = 0  # Temps de début de l'intégration
+        self._integration_complete = False  # Pour suivre l'état d'intégration
+
     @property
     def source_pad(self) -> Pad:
         return self._source_pad
@@ -88,11 +104,6 @@ class Astronaut(pygame.sprite.Sprite):
     @property
     def target_pad(self) -> Pad:
         return self._target_pad
-
-    def draw(self, surface: pygame.Surface) -> None:
-        """ Dessine l'astronaute, sauf s'il est à bord du taxi. """
-        if self._state != AstronautState.ONBOARD:
-            surface.blit(self.image, self.rect)
 
     def get_trip_money(self) -> float:
         return self._trip_money
@@ -174,6 +185,49 @@ class Astronaut(pygame.sprite.Sprite):
     def set_trip_money(self, trip_money: float) -> None:
         self._trip_money = trip_money
 
+    def draw(self, surface: pygame.Surface) -> None:
+        """
+        Affiche l'astronaute sur la surface donnée. Si l'état actuel est INTEGRATION,
+        affiche progressivement les pixels de l'image associée. Sinon, affiche l'image normale.
+
+        :param surface: Surface de jeu où dessiner l'astronaute.
+        """
+        if self._state == AstronautState.INTEGRATION:
+            self._draw_integration_pixels(surface)
+        elif self._state != AstronautState.ONBOARD:
+            surface.blit(self.image, self.rect)
+
+
+    def _draw_integration_pixels(self, surface: pygame.Surface) -> None:
+        """
+        Affiche progressivement les pixels de l'image associée pendant l'intégration.
+
+        :param surface: Surface de jeu où dessiner l'astronaute.
+        """
+        elapsed_time = time.time() - self._pxels_start_timestamp
+        progress_ratio = min(1, elapsed_time / Astronaut._INTEGRATION_DELAY)
+        num_pixels_to_render = int(progress_ratio * len(self._pxels_data))
+
+        # Afficher progressivement les pixels
+        for i in range(num_pixels_to_render):
+            pixel = self._pxels_data[i]
+            x, y = pixel
+            surface.set_at(
+                (self.rect.x + x, self.rect.y + y),
+                self._waiting_frame.get_at(pixel)
+            )
+
+
+    def _load_integration_pixels(self) -> None: # A9
+        """
+        Crée et mélange une liste de tous les pixels de l'image dans l'état d'attente (WAITING),
+        utilisée pour afficher progressivement l'astronaute lors de l'intégration.
+        """
+
+        width, height = self._waiting_frame.get_width(), self._waiting_frame.get_height()
+        self._pxels_data = [(x, y) for x in range(width) for y in range(height)]
+        random.shuffle(self._pxels_data)
+
     def update(self, *args, **kwargs) -> None:
         """
         Met à jour l'astronaute. Cette méthode est appelée à chaque itération de la boucle de jeu.
@@ -181,6 +235,18 @@ class Astronaut(pygame.sprite.Sprite):
         :param kwargs: inutilisé
         """
         current_time = time.time()
+
+        if self._state == AstronautState.INTEGRATION: # A9
+            if self._integration_done is False:
+                self._load_integration_pixels()
+                self._pxels_start_timestamp = time.time()
+                self._integration_done = True
+
+            if time.time() - self._pxels_start_timestamp >= Astronaut._INTEGRATION_DELAY:
+                self._state = AstronautState.WAITING
+                self._state_time = 0
+                self._frames = self._all_frames[self._state]
+                self._current_frame = 0
 
         # ÉTAPE 1 - diminuer le montant de la course si le moment est venu
         if self._last_saved_time is None:
@@ -197,9 +263,11 @@ class Astronaut(pygame.sprite.Sprite):
             return
 
         # ÉTAPE 2 - changer de trame si le moment est venu
-        if current_time - self._last_frame_time >= Astronaut._FRAME_TIMES[self._state]:
-            self._current_frame = (self._current_frame + 1) % len(self._frames)
-            self._last_frame_time = current_time
+        if self._state in Astronaut._FRAME_TIMES:
+            if current_time - self._last_frame_time >= Astronaut._FRAME_TIMES[self._state]:
+                self._current_frame = (self._current_frame + 1) % len(self._frames)
+                self._last_frame_time = current_time
+
 
         # ÉTAPE 3 - changer d'état si le moment est venu
         self._state_time += current_time - self._last_frame_time
