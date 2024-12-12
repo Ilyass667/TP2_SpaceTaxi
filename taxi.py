@@ -78,6 +78,8 @@ class Taxi(pygame.sprite.Sprite):
 
         try:
             super(Taxi, self).__init__()
+
+            self._gear_shocks_timer = 0  # Timer pour afficher le train compressé
             #Modif A15 Début
             self._smooth_landing_sound = pygame.mixer.Sound("snd/smooth_landing_snd.wav")
             self._rough_landing_sound = pygame.mixer.Sound("snd/rough_landing_snd.wav")
@@ -172,7 +174,7 @@ class Taxi(pygame.sprite.Sprite):
         """
         if self.rect.y <= -self.rect.height:
             # Modif C13 Début
-            self._reactor_sound.stop()
+            self.stop_reactor_sound()
             # Modif C13 Fin
             return True
         return False
@@ -269,11 +271,11 @@ class Taxi(pygame.sprite.Sprite):
         if not self.rect.colliderect(pad.rect):
             return False
         # C4 -  Calculer les positions des deux pattes du taxi
-        left_foot = (self.rect.left + 5,self.rect.bottom)
-        right_foot = (self.rect.right - 5,self.rect.bottom)
+        left_foot = (self.rect.left + 5, self.rect.bottom)
+        right_foot = (self.rect.right - 5, self.rect.bottom)
 
         # Vérifier si les deux pattes touchent la plateforme
-        if not (pad.rect.collidepoint(left_foot) and pad.rect.collidepoint(right_foot)): 
+        if not (pad.rect.collidepoint(left_foot) and pad.rect.collidepoint(right_foot)):
             self._crash_sound.play()
             return False
         # fin C4
@@ -281,25 +283,29 @@ class Taxi(pygame.sprite.Sprite):
             # Vérifier le type d'atterrissage
             is_rough_landing = Taxi._MAX_VELOCITY_SMOOTH_LANDING < abs(
                 self._velocity.y) <= Taxi._MAX_VELOCITY_ROUGH_LANDING
+            is_too_fast = abs(self._velocity.y) > Taxi._MAX_VELOCITY_ROUGH_LANDING
 
-            if abs(self._velocity.y) > Taxi._MAX_VELOCITY_ROUGH_LANDING:
+            if is_too_fast:
                 # Considérer comme un crash normal
+                self._flags = Taxi._FLAG_DESTROYED  # Détruire le taxi
+                self._crash_sound.play()
                 return False
 
             # A13 - Jouer le son correspondant
             if is_rough_landing:
                 self._rough_landing_sound.play()
+                self._gear_shocks_timer = pygame.time.get_ticks()  # Activer le timer pour l'image compressée
             else:
                 self._smooth_landing_sound.play()
 
             # Atterrissage réussi, réinitialiser la position
             self.rect.bottom = pad.rect.top + 4
             self._pos.y = float(self.rect.y)
-            self._flags &= Taxi._FLAG_LEFT | Taxi._FLAG_GEAR_OUT
+            self._flags &= Taxi._FLAG_LEFT | Taxi._FLAG_GEAR_OUT  # Réinitialiser les drapeaux sauf la direction et le train
             self._velocity.y = self._acceleration.x = self._acceleration.y = 0.0
             self._pad_landed_on = pad
 
-            if self._astronaut: # C11
+            if self._astronaut:  # C11
                 if self._astronaut.target_pad != Pad.UP and self._astronaut.target_pad.number == pad.number:
                     self.unboard_astronaut()
             return True
@@ -557,58 +563,76 @@ class Taxi(pygame.sprite.Sprite):
         self._astronaut = None
         self._hud.set_trip_money(0.0)
 
+    def stop_reactor_sound(self) -> None:
+        """ Stoppe le son des réacteurs. """
+        self._reactor_sound.stop()
+
     def _select_image(self) -> None:
         """ Sélectionne l'image et le masque à utiliser pour l'affichage du taxi en fonction de son état. """
-        facing = self._flags & Taxi._FLAG_LEFT
+        facing = self._flags & Taxi._FLAG_LEFT  # Détermine si le taxi est orienté vers la gauche
 
+        # Vérifier si le taxi est détruit
         if self._flags & Taxi._FLAG_DESTROYED:
             self.image = self._surfaces[ImgSelector.DESTROYED][facing]
             self.mask = self._masks[ImgSelector.DESTROYED][facing]
             return
 
+        # Vérifier si le timer pour l'image GEAR_SHOCKS est actif
+        if self._gear_shocks_timer > 0:
+            elapsed_time = pygame.time.get_ticks() - self._gear_shocks_timer
+            if elapsed_time <= 500:  # Si moins de la moitier de une seconde s'est écoulée
+                self.image = self._surfaces[ImgSelector.GEAR_SHOCKS][facing]
+                self.mask = self._masks[ImgSelector.GEAR_SHOCKS][facing]
+                return
+            else:
+                self._gear_shocks_timer = 0  # Réinitialiser le timer
+
+        # Vérifier si les réacteurs supérieur et arrière sont activés
         condition_flags = Taxi._FLAG_TOP_REACTOR | Taxi._FLAG_REAR_REACTOR
         if self._flags & condition_flags == condition_flags:
             self.image = self._surfaces[ImgSelector.TOP_AND_REAR_REACTORS][facing]
             self.mask = self._masks[ImgSelector.TOP_AND_REAR_REACTORS][facing]
             return
 
+        # Vérifier si les réacteurs inférieur et arrière sont activés
         condition_flags = Taxi._FLAG_BOTTOM_REACTOR | Taxi._FLAG_REAR_REACTOR
         if self._flags & condition_flags == condition_flags:
             self.image = self._surfaces[ImgSelector.BOTTOM_AND_REAR_REACTORS][facing]
             self.mask = self._masks[ImgSelector.BOTTOM_AND_REAR_REACTORS][facing]
             return
 
+        # Vérifier si le réacteur arrière est activé
         if self._flags & Taxi._FLAG_REAR_REACTOR:
             self.image = self._surfaces[ImgSelector.REAR_REACTOR][facing]
             self.mask = self._masks[ImgSelector.REAR_REACTOR][facing]
             return
 
+        # Vérifier si le train d'atterrissage et le réacteur inférieur sont activés
         condition_flags = Taxi._FLAG_GEAR_OUT | Taxi._FLAG_BOTTOM_REACTOR
         if self._flags & condition_flags == condition_flags:
             self.image = self._surfaces[ImgSelector.GEAR_OUT_AND_BOTTOM_REACTOR][facing]
             self.mask = self._masks[ImgSelector.GEAR_OUT_AND_BOTTOM_REACTOR][facing]
             return
 
+        # Vérifier si le réacteur inférieur est activé
         if self._flags & Taxi._FLAG_BOTTOM_REACTOR:
             self.image = self._surfaces[ImgSelector.BOTTOM_REACTOR][facing]
             self.mask = self._masks[ImgSelector.BOTTOM_REACTOR][facing]
             return
 
+        # Vérifier si le réacteur supérieur est activé
         if self._flags & Taxi._FLAG_TOP_REACTOR:
             self.image = self._surfaces[ImgSelector.TOP_REACTOR][facing]
             self.mask = self._masks[ImgSelector.TOP_REACTOR][facing]
             return
 
+        # Vérifier si le train d'atterrissage est activé
         if self._flags & Taxi._FLAG_GEAR_OUT:
             self.image = self._surfaces[ImgSelector.GEAR_OUT][facing]
             self.mask = self._masks[ImgSelector.GEAR_OUT][facing]
             return
 
-        if self._flags & Taxi._FLAG_DESTROYED:
-            self.image = self._surfaces[ImgSelector.DESTROYED][facing]
-            self.mask = self._masks[ImgSelector.DESTROYED][facing]
-            return
-
+        # Par défaut, afficher l'image IDLE
         self.image = self._surfaces[ImgSelector.IDLE][facing]
         self.mask = self._masks[ImgSelector.IDLE][facing]
 
