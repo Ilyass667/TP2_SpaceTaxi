@@ -46,7 +46,6 @@ def main() -> None:
 
     scene_manager.add_scene("splash", SplashScene()) # M12
     scene_manager.add_scene("level1_load", LevelLoadingScene(1, "level1_load")) # M12
-    scene_manager.add_scene("level1", LevelScene(1)) # M12
     scene_manager.add_scene("level2_load", LevelLoadingScene(2, "level2_load")) # M12
     scene_manager.set_scene("splash") # M12
 
