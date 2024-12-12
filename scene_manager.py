@@ -59,6 +59,20 @@ class SceneManager:
 
                 self._current_scene, self._next_scene = self._next_scene, None
                 self._transitioning = False
+               
+                # # A17 condition pour jouer le 'Jingle'
+                # if self._current_scene.name:
+                    
+                #     hasLevel=False
+                #     try:
+                #         _=int(self._current_scene.name[-1])
+                #         hasLevel=True
+                #     except ValueError as err:
+                #         hasLevel=False
+                #     if hasLevel:
+                #         hasLevel=True
+                #         self._current_scene._play_start_jingle()
+    
 
         # self.print_scenes_periodically()
 
@@ -90,3 +104,12 @@ class SceneManager:
             os.system("cls")
             for key, value in self._scenes.items():
                 print(f"Key: {key}, Value: {value}")
+
+
+    def has_scene(self, name: str) -> bool:
+        """
+        Vérifie si une scène avec le nom donné existe dans le gestionnaire de scènes.
+        :param name: Nom de la scène à vérifier.
+        :return: True si la scène existe, False sinon.
+        """
+        return name in self._scenes

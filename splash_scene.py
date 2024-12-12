@@ -20,7 +20,7 @@ class SplashScene(Scene):
     # Modif A1 Début : Ajout de la durée pour le fondu d'entrée
     _FADE_IN_DURATION: int = 1500  # Durée du fondu (en millisecondes)
     # Modif A1 Fin
-
+    a=0
     _FADE_OUT_DURATION: int = 1500  # ms
 
     def __init__(self) -> None:

@@ -15,6 +15,9 @@
   Novembre 2024
 """
 import os
+
+from GameOverScene import GameOverScene
+
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
 import sys
@@ -35,6 +38,9 @@ def main() -> None:
     screen = pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
     pygame.display.set_caption("Tribute to Space Taxi!")
 
+    icone = pygame.image.load("img/Icone.PNG")
+    pygame.display.set_icon(icone)
+
     clock = pygame.time.Clock()
 
     show_fps = False
@@ -48,7 +54,7 @@ def main() -> None:
     scene_manager.add_scene("level1_load", LevelLoadingScene(1, "level1_load")) # M12
     scene_manager.add_scene("level2_load", LevelLoadingScene(2, "level2_load")) # M12
     scene_manager.set_scene("splash") # M12
-
+    scene_manager.add_scene("game_over",  GameOverScene("GAME OVER"))
 
     try:
         while True:
